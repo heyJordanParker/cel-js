@@ -1,5 +1,17 @@
 # cel-js
 
+> [!NOTE]
+> ## 🙋 This project is looking for a new maintainer!
+>
+> I no longer have the time to actively develop or maintain **cel-js**.
+> Rather than archiving it, I'd love to hand it off to someone who can
+> take it further.
+>
+> **Interested?** Open an issue or reach out to me directly. I'm happy
+> to transfer the repository to the right person.
+>
+> If no maintainer is found, this project will be archived in the future.
+
 > [!NOTE]  
 > There is also [a great implementation of cel-js](https://github.com/marcbachmann/cel-js) made by @marcbachmann. It has full syntax support and better performance. You may consider it too 🙂
 
