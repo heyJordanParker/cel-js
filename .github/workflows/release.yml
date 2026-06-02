@@ -1,0 +1,94 @@
+name: Release
+
+# Publishes a release on every commit to the default branch.
+#
+# The npm name `cel-js` is owned upstream, so this fork ships through Git
+# instead of a registry. A Git/GitHub dependency is resolved by Bun and npm
+# under the dependency's package.json `name` (`cel-js`) and is NOT built on
+# install (Bun never runs a dependency's build/prepare scripts). So the
+# published ref must already contain the built `dist/`.
+#
+# Each push to main:
+#   1. builds `dist/`,
+#   2. stamps a unique version `0.8.2-build.<run_number>` into package.json,
+#   3. commits the built dist onto a detached tree and publishes it as a
+#      `v0.8.2-build.<run_number>` tag plus a GitHub Release.
+#
+# main stays source-only — nothing is pushed back to it, so there is no
+# release loop. Consumers install
+#   "cel-js": "github:heyJordanParker/cel-js#v0.8.2-build.<n>"
+# (or "#latest" for the moving pointer) and import the bare `cel-js`.
+
+on:
+  push:
+    branches: [main]
+
+# Serialize releases so two pushes can't race on the tag / latest pointer.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.29.1
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.10.0
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Stamp version
+        id: version
+        run: |
+          base=$(node -p "require('./package.json').version")
+          version="v${base}-build.${{ github.run_number }}"
+          npm pkg set "version=${base}-build.${{ github.run_number }}"
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+
+      - name: Build dist
+        run: pnpm run build
+
+      - name: Publish tag and latest pointer with built dist
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          # dist/ is gitignored in source; force-add it onto the release tree
+          # so a Git install is importable with no build step.
+          git add --force package.json dist
+          git commit -m "build: ${VERSION}"
+
+          git tag --force "${VERSION}"
+          git push --force origin "${VERSION}"
+
+          # Moving pointer for consumers that want "always latest".
+          git tag --force latest
+          git push --force origin latest
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          gh release create "${VERSION}" \
+            --title "${VERSION}" \
+            --generate-notes
