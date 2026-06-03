@@ -100,6 +100,29 @@ export const getCelType = (value: unknown): CelType => {
   throw new Error(`Unknown type: ${typeof value}`)
 }
 
+/**
+ * Determines whether a value should trigger the `??` coalesce fallback.
+ *
+ * The coalesce operator falls back to its right operand when the left is
+ * null/undefined OR empty — an empty string, an empty list, or an empty map.
+ * Real values (including `0` and `false`) never trigger the fallback.
+ */
+export const isNullOrEmpty = (value: unknown): boolean => {
+  if (value === null || value === undefined) {
+    return true
+  }
+
+  if (isString(value) || isArray(value)) {
+    return value.length === 0
+  }
+
+  if (isMap(value)) {
+    return Object.keys(value).length === 0
+  }
+
+  return false
+}
+
 export enum Operations {
   addition = 'addition',
   subtraction = 'subtraction',

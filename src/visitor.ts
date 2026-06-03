@@ -3,6 +3,7 @@ import { CelParser } from './parser.js'
 import {
   AdditionCstChildren,
   AtomicExpressionCstChildren,
+  CoalesceCstChildren,
   ConditionalAndCstChildren,
   ConditionalOrCstChildren,
   ExprCstChildren,
@@ -28,6 +29,7 @@ import {
   getResult,
   getUnaryResult,
   has,
+  isNullOrEmpty,
   size,
 } from './helper.js'
 import { CelEvaluationError } from './index.js'
@@ -136,10 +138,7 @@ export class CelVisitor
       : expressions[1]
 
     // Extract variable name (should be an identifier)
-    if (
-      variableExpr.name !== 'expr' ||
-      !variableExpr.children.conditionalOr[0]
-    ) {
+    if (variableExpr.name !== 'expr' || !variableExpr.children.coalesce[0]) {
       throw new CelEvaluationError(
         `${macroName}() first argument must be a variable name`,
       )
@@ -350,7 +349,7 @@ export class CelVisitor
       throw new CelEvaluationError('Variable name must be a simple identifier')
     }
 
-    const condition = this.visit(ctx.conditionalOr[0])
+    const condition = this.visit(ctx.coalesce[0])
 
     // If no ternary operator is present, just return the condition
     if (!ctx.QuestionMark) return condition
@@ -361,6 +360,37 @@ export class CelVisitor
     } else {
       return this.visit(ctx.rhs![0])
     }
+  }
+
+  /**
+   * Evaluates a coalesce expression: `left ?? right`. Returns the left operand
+   * unless it is null or empty (empty string, list, or map), in which case the
+   * next operand is taken. Left-associative and chainable (`a ?? b ?? c`):
+   * each operand is evaluated only when every operand to its left was empty.
+   *
+   * @param ctx - The coalesce context containing the left operand and any
+   *   right operands joined by `??`
+   * @returns The first operand that is neither null nor empty, or the last
+   *   operand when all are empty
+   */
+  coalesce(ctx: CoalesceCstChildren): unknown {
+    // In variable extraction mode, reject coalesce operations
+    if (this.mode === Mode.extract_variable && ctx.rhs) {
+      throw new CelEvaluationError('Variable name must be a simple identifier')
+    }
+
+    let left = this.visit(ctx.lhs)
+
+    if (ctx.rhs) {
+      for (const rhsOperand of ctx.rhs) {
+        if (!isNullOrEmpty(left)) {
+          return left
+        }
+        left = this.visit(rhsOperand)
+      }
+    }
+
+    return left
   }
 
   /**
@@ -810,25 +840,23 @@ export class CelVisitor
   }
 
   getIdentifier(searchContext: unknown, identifier: string): unknown {
+    // The has() macro needs to distinguish a present field from an absent one,
+    // so in has-mode absence surfaces as undefined for has() to test. In normal
+    // mode, member access is null-safe (see below).
+    const missing = this.mode === Mode.has ? undefined : null
+
+    // Null-safe member access: reading a field off a null or missing value
+    // yields null and cascades, rather than throwing. `a.b.c` is null when any
+    // link in the chain is null, so authors need no presence-check ceremony.
     if (typeof searchContext !== 'object' || searchContext === null) {
-      throw new Error(
-        `Cannot obtain "${identifier}" from non-object context: ${searchContext}`,
-      )
+      return missing
     }
 
     const value = (searchContext as Record<string, unknown>)[identifier]
 
+    // A missing field reads as null, the same as accessing it off a null value.
     if (value === undefined) {
-      const context = JSON.stringify(this?.context)
-
-      if (context === '{}') {
-        throw new Error(
-          `Identifier "${identifier}" not found, no context passed`,
-        )
-      }
-      throw new Error(
-        `Identifier "${identifier}" not found in context: ${context}`,
-      )
+      return missing
     }
 
     return value

@@ -46,12 +46,12 @@ describe('maps expressions', () => {
         expect(result).toBe(1)
       })
 
-      it('should throw an error if the key does not exist', () => {
+      it('should return null if the key does not exist', () => {
         const expr = '{"a": 1}.b'
 
-        const result = () => evaluate(expr)
+        const result = evaluate(expr)
 
-        expect(result).toThrow('Identifier "b" not found, no context passed')
+        expect(result).toBeNull()
       })
 
       it.todo('should throw an error if the key is not a string', () => {
@@ -71,20 +71,20 @@ describe('maps expressions', () => {
         expect(result).toBe(1)
       })
 
-      it('should throw an error if the key does not exist', () => {
+      it('should return null if the key does not exist', () => {
         const expr = '{"a": 1}["b"]'
 
-        const result = () => evaluate(expr)
+        const result = evaluate(expr)
 
-        expect(result).toThrow('Identifier "b" not found, no context passed')
+        expect(result).toBeNull()
       })
 
-      it('should throw an error if the key is not a string', () => {
+      it('should return null if the key is not present', () => {
         const expr = '{"a": 1}[1]'
 
-        const result = () => evaluate(expr)
+        const result = evaluate(expr)
 
-        expect(result).toThrow('Identifier "1" not found, no context passed')
+        expect(result).toBeNull()
       })
     })
   })

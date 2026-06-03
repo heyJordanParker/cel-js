@@ -71,20 +71,20 @@ describe('identifiers', () => {
     expect(result).toStrictEqual({ b: 2 })
   })
 
-  it('should throw if access to identifier but w/o context', () => {
+  it('should return null if access to identifier but w/o context', () => {
     const expr = 'a'
 
-    const result = () => evaluate(expr)
+    const result = evaluate(expr)
 
-    expect(result).toThrow(`Identifier "a" not found, no context passed`)
+    expect(result).toBeNull()
   })
 
-  it('should throw if identifier is not in context', () => {
+  it('should return null if identifier is not in context', () => {
     const expr = 'a'
 
-    const result = () => evaluate(expr, { b: 2 })
+    const result = evaluate(expr, { b: 2 })
 
-    expect(result).toThrow(`Identifier "a" not found in context: {"b":2}`)
+    expect(result).toBeNull()
   })
 
   describe('reserved identifiers', () => {

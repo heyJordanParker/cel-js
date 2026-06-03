@@ -45,6 +45,8 @@ export const Comma = createToken({ name: 'Comma', pattern: /,/ })
 
 export const Colon = createToken({ name: 'Colon', pattern: /:/ })
 
+export const Coalesce = createToken({ name: 'Coalesce', pattern: /\?\?/ })
+
 export const QuestionMark = createToken({ name: 'QuestionMark', pattern: /\?/ })
 
 export const Float = createToken({
@@ -240,6 +242,7 @@ export const allTokens = [
   Dot,
   Comma,
   Colon,
+  Coalesce,
   QuestionMark,
 
   Float,
