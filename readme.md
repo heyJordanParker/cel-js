@@ -70,7 +70,7 @@ Try out `cel-js` in your browser with the [live demo](https://stackblitz.com/git
 To install `cel-js`, use npm:
 
 ```bash
-npm i cel-js
+npm i @heyjordanparker/cel-js
 ```
 
 ## Usage
@@ -80,7 +80,7 @@ npm i cel-js
 `evaluate` is the primary function for parsing and evaluating CEL expressions. It takes an expression string and an optional object of variables to use in the expression.
 
 ```ts
-import { evaluate, parse } from 'cel-js'
+import { evaluate, parse } from '@heyjordanparker/cel-js'
 
 // use `evaluate` to parse and evaluate an expression
 evaluate('2 + 2 * 2') // => 6

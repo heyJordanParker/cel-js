@@ -1,5 +1,5 @@
 {
-  "name": "cel-js",
+  "name": "@heyjordanparker/cel-js",
   "version": "0.8.2",
   "description": "Common Expression Language (CEL) evaluator for JavaScript",
   "keywords": [
@@ -9,10 +9,10 @@
     "javascript",
     "typescript"
   ],
-  "homepage": "https://github.com/ChromeGG/cel-js",
+  "homepage": "https://github.com/heyJordanParker/cel-js",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ChromeGG/cel-js.git"
+    "url": "git+https://github.com/heyJordanParker/cel-js.git"
   },
   "license": "MIT",
   "author": "Adam Tkaczyk",
@@ -25,6 +25,9 @@
   "files": [
     "dist"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "pnpm run clean && tsc",
     "clean": "rm -rf ./dist",
