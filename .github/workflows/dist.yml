@@ -1,0 +1,71 @@
+name: Build dist
+
+# Keeps the committed `dist/` correct and current on every push to the default
+# branch.
+#
+# The npm name `cel-js` is owned upstream, so this fork ships through Git rather
+# than a registry. A Git/GitHub dependency is NOT built on install — Bun never
+# runs a dependency's build/prepare scripts, and even when it does it skips the
+# dependency's devDependencies, which the `tsc` build needs. So `main` itself
+# must carry a built `dist/`: a consumer installs
+#   "cel-js": "github:heyJordanParker/cel-js"
+# with no tag and imports the bare `cel-js` against the committed `dist/`.
+#
+# This guard rebuilds `dist/` from source on every push and, if the result
+# differs from what is committed, commits the rebuilt `dist/` back to the
+# branch. A contributor who edits `src/` but forgets to rebuild can never leave
+# `main` carrying stale build output. The commit message carries `[skip ci]`
+# and the rebuild is a no-op when `dist/` already matches, so the auto-commit
+# does not loop.
+
+on:
+  push:
+    branches: [main]
+
+# Serialize so two pushes can't race on committing dist back.
+concurrency:
+  group: build-dist
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  build-dist:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.29.1
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.10.0
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build dist
+        run: pnpm run build
+
+      - name: Commit rebuilt dist if it changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          if git diff --quiet -- dist; then
+            echo "dist is already current — nothing to commit."
+            exit 0
+          fi
+
+          git add dist
+          git commit -m "build: rebuild dist [skip ci]"
+          git push origin HEAD:main
