@@ -81,11 +81,21 @@ describe('logical operators', () => {
     expect(result).toBe(true)
   })
 
-  it('should throw an error if one of types is not boolean', () => {
+  it('should not reach the right operand once the left settles the result', () => {
+    // `||` short-circuits, so a true left operand settles the expression and
+    // the right is never evaluated — not even to check its type.
     const expr = 'true || 1'
+
+    const result = evaluate(expr)
+
+    expect(result).toBe(true)
+  })
+
+  it('should throw an error if one of types is not boolean', () => {
+    const expr = 'false || 1'
 
     const result = () => evaluate(expr)
 
-    expect(result).toThrow(new CelTypeError(Operations.logicalOr, true, 1))
+    expect(result).toThrow(new CelTypeError(Operations.logicalOr, false, 1))
   })
 })

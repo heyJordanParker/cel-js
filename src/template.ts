@@ -37,7 +37,8 @@ export const ESCAPED_OPEN = '\\{{'
 const WHOLE_INERT = /^\s*\{\{\s*((?:(?!\}\})[\s\S])*?)\s*\}\}\s*$/
 const WHOLE_EXECUTABLE = /^\s*\{\{\{\s*((?:(?!\}\}\})[\s\S])*?)\s*\}\}\}\s*$/
 const WHOLE_CHAIN = new RegExp(`^\\s*${AT_CHAIN}\\s*$`)
-const BINDINGS = /(?<!\\)(?:\{\{\{\s*([\s\S]*?)\s*\}\}\}|\{\{\s*([\s\S]*?)\s*\}\})/g
+const BINDINGS =
+  /(?<!\\)(?:\{\{\{\s*([\s\S]*?)\s*\}\}\}|\{\{\s*([\s\S]*?)\s*\}\})/g
 const SPANS = new RegExp(
   `\\\\\\{\\{|\\{\\{\\{\\s*([\\s\\S]*?)\\s*\\}\\}\\}|\\{\\{\\s*([\\s\\S]*?)\\s*\\}\\}|${AT_CHAIN}`,
   'g',
@@ -196,7 +197,8 @@ export class Template {
 
     const bindings = [...unescaped.matchAll(BINDINGS)]
     let remaining = unescaped
-    for (const binding of bindings) remaining = remaining.replace(binding[0], '')
+    for (const binding of bindings)
+      remaining = remaining.replace(binding[0], '')
 
     // An opener with no closer is not a binding and never will be.
     if (remaining.includes('{{')) return false

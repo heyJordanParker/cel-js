@@ -197,7 +197,12 @@ function bracesSpan(
   const end = close + 2
 
   return {
-    span: { opener: 'braces', start: open, end, inner: text.slice(open + 2, close) },
+    span: {
+      opener: 'braces',
+      start: open,
+      end,
+      inner: text.slice(open + 2, close),
+    },
     next: end,
   }
 }

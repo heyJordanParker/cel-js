@@ -193,17 +193,22 @@ export function formatDate(
   const local = wallClock(date, timeZone)
 
   let rendered = ''
-  for (let index = 0; index < pattern.length; index++) {
+  let index = 0
+
+  while (index < pattern.length) {
     const character = pattern[index]
 
+    // A backslash renders the character after it literally, so both are
+    // consumed together.
     if (character === '\\') {
-      index++
-      if (index < pattern.length) rendered += pattern[index]
+      rendered += pattern[index + 1] ?? ''
+      index += 2
       continue
     }
 
     const value = token(character, local, date)
     rendered += value === null ? character : value
+    index += 1
   }
 
   return rendered

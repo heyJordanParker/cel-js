@@ -18,9 +18,9 @@ describe('rendering a whole binding', () => {
   })
 
   it('keeps the value type of a whole executable binding', () => {
-    expect(template.render('{{{ order.total }}}', { order: { total: 12 } })).toBe(
-      12,
-    )
+    expect(
+      template.render('{{{ order.total }}}', { order: { total: 12 } }),
+    ).toBe(12)
   })
 
   it('tolerates whitespace around a whole binding', () => {
@@ -154,9 +154,9 @@ describe('roots', () => {
 
 describe('the chain opener', () => {
   it('is off by default, so a chain is ordinary text', () => {
-    expect(template.render('write to @support.team', { support: { team: 'x' } })).toBe(
-      'write to @support.team',
-    )
+    expect(
+      template.render('write to @support.team', { support: { team: 'x' } }),
+    ).toBe('write to @support.team')
   })
 
   it('resolves a chain when the host turns it on', () => {
@@ -252,10 +252,15 @@ describe('the fragment hook', () => {
   })
 
   it('lets a host render a value its own way', () => {
+    const asHostWrites = (value: unknown, mark: boolean | null) => {
+      if (mark === null) return value
+      return value ? '1' : ''
+    }
+
     const rendered = template.render(
       'paid: {{ paid }}',
       { paid: true },
-      (value, mark) => (mark === null ? value : value ? '1' : ''),
+      asHostWrites,
     )
 
     expect(rendered).toBe('paid: 1')

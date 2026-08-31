@@ -33,14 +33,7 @@ import {
   size,
 } from './helper.js'
 import { CelEvaluationError } from './index.js'
-import {
-  contains,
-  createDate,
-  double,
-  join,
-  max,
-  sum,
-} from './functions.js'
+import { contains, createDate, double, join, max, sum } from './functions.js'
 import { reservedIdentifiers } from './tokens.js'
 
 /** Mode in which visitors are executed */

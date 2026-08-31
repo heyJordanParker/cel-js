@@ -160,8 +160,9 @@ export function createDate(timeZone = 'UTC', defaultFormat = ISO_8601) {
  * language; a looser string is whatever the host platform makes of it, and the
  * two platforms do not agree there.
  */
-const ISO_DATE =
-  /^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2})(?::(\d{2}))?(?:\.(\d{1,3})\d*)?)?(Z|[+-]\d{2}:?\d{2})?$/
+const OFFSET = /(?:Z|[+-]\d{2}:?\d{2})$/
+const ISO_DATE = /^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2})(.*))?$/
+const ISO_SECONDS = /^:(\d{2})(?:\.(\d+))?$/
 
 function readDate(value: unknown, timeZone: string): Date {
   if (value instanceof Date) return value
@@ -172,22 +173,30 @@ function readDate(value: unknown, timeZone: string): Date {
     throw new CelEvaluationError(`date() cannot read a ${describe(value)}`)
   }
 
-  const match = ISO_DATE.exec(value.trim())
+  const trimmed = value.trim()
+
+  // A string carrying its own offset names an instant outright, so the host
+  // timezone has no say in reading it.
+  if (OFFSET.test(trimmed)) return new Date(trimmed.replace(' ', 'T'))
+
+  const match = ISO_DATE.exec(trimmed)
   if (match === null) return new Date(value)
 
-  // A string carrying its own offset names an instant outright.
-  if (match[8] !== undefined) return new Date(value.trim().replace(' ', 'T'))
+  const seconds = ISO_SECONDS.exec(match[6] ?? '')
+  if (match[6] !== undefined && match[6] !== '' && seconds === null) {
+    return new Date(value)
+  }
 
-  // Without one it names a wall-clock reading, which belongs to the caller's
-  // timezone rather than to wherever this happens to run.
+  // Without an offset the string names a wall-clock reading, which belongs to
+  // the caller's timezone rather than to wherever this happens to run.
   const reading = Date.UTC(
     Number(match[1]),
     Number(match[2]) - 1,
     Number(match[3]),
     Number(match[4] ?? 0),
     Number(match[5] ?? 0),
-    Number(match[6] ?? 0),
-    Number((match[7] ?? '').padEnd(3, '0') || 0),
+    Number(seconds?.[1] ?? 0),
+    Number((seconds?.[2] ?? '').slice(0, 3).padEnd(3, '0')),
   )
 
   return new Date(reading - zoneOffset(new Date(reading), timeZone))

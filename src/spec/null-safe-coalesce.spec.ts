@@ -75,13 +75,15 @@ describe('?? coalesce operator', () => {
   })
 
   it('chains left-associatively, taking the first non-empty operand', () => {
-    expect(evaluate('a ?? b ?? c', { a: null, b: '', c: 'third' })).toBe('third')
+    expect(evaluate('a ?? b ?? c', { a: null, b: '', c: 'third' })).toBe(
+      'third',
+    )
     expect(evaluate('a ?? b ?? c', { a: null, b: 'second', c: 'third' })).toBe(
       'second',
     )
-    expect(evaluate('a ?? b ?? c', { a: 'first', b: 'second', c: 'third' })).toBe(
-      'first',
-    )
+    expect(
+      evaluate('a ?? b ?? c', { a: 'first', b: 'second', c: 'third' }),
+    ).toBe('first')
   })
 
   it('returns the last operand when every operand is empty', () => {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { evaluate } from '../index.js'
+import { createDate, evaluate } from '../index.js'
 
 /**
  * The `date()` format contract.
@@ -112,9 +112,9 @@ describe('date() values', () => {
   })
 
   it('reads a string carrying its own offset', () => {
-    expect(
-      evaluate('date("2026-06-11T15:04:05Z", "Y-m-d H:i")'),
-    ).toBe('2026-06-11 15:04')
+    expect(evaluate('date("2026-06-11T15:04:05Z", "Y-m-d H:i")')).toBe(
+      '2026-06-11 15:04',
+    )
   })
 
   it('reads a variable carrying a date string', () => {
@@ -144,9 +144,9 @@ describe('date() wired by a host', () => {
   })
 
   it('uses the host default format', () => {
-    expect(
-      evaluate('date("2026-06-11")', {}, host('UTC', 'M j, Y')),
-    ).toBe('Jun 11, 2026')
+    expect(evaluate('date("2026-06-11")', {}, host('UTC', 'M j, Y'))).toBe(
+      'Jun 11, 2026',
+    )
   })
 
   it('lets a call name its own format over the host default', () => {

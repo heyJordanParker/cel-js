@@ -140,16 +140,21 @@ function readChain(
   const segments: ReferenceSegment[] = [{ key: root, indexed: false }]
   let consumedTail = consumed
 
+  // Chains nested inside this one — an index expression, a macro body — are
+  // walked after this chain is pushed, so the chains come back in the order
+  // they are written rather than inside out.
+  const nested: Array<() => void> = []
+
   for (const step of ordered) {
     if (step.name === 'indexExpression') {
       segments[segments.length - 1].indexed = true
       // An index may itself read references, as in `a[b.c]`.
-      walk(step, bound, false, paths)
+      nested.push(() => walk(step, bound, false, paths))
       continue
     }
 
     if (step.children.OpenParenthesis) {
-      walkMacroBody(step, bound, paths)
+      nested.push(() => walkMacroBody(step, bound, paths))
       consumedTail = true
       break
     }
@@ -161,6 +166,10 @@ function readChain(
   // data the expression reads.
   if (!bound.has(root)) {
     paths.push({ segments, consumed: consumedTail })
+  }
+
+  for (const walkNested of nested) {
+    walkNested()
   }
 }
 
