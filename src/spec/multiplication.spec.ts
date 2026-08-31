@@ -81,4 +81,26 @@ describe('multiplication', () => {
       expect(result).toThrow(new CelEvaluationError('Modulus by zero'))
     })
   })
+
+  // A double divided by zero is IEEE-754, not an error. The CEL type here is
+  // read off the runtime number, and JavaScript has one number type, so a
+  // double that happens to be integral (`1.0`) is indistinguishable from `1`
+  // and still raises. Every double this engine can actually tell apart divides.
+  describe('double division by zero follows IEEE-754', () => {
+    it('is positive infinity', () => {
+      expect(evaluate('1.5 / 0')).toBe(Infinity)
+    })
+
+    it('is negative infinity', () => {
+      expect(evaluate('-1.5 / 0')).toBe(-Infinity)
+    })
+
+    it('divides a double by a double', () => {
+      expect(evaluate('3.0 / 1.5')).toBe(2)
+    })
+
+    it('divides two doubles into a fraction', () => {
+      expect(evaluate('7.5 / 2.5')).toBe(3)
+    })
+  })
 })

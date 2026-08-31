@@ -180,12 +180,17 @@ const multiplicationOperation = (left: unknown, right: unknown) => {
 }
 
 const divisionOperation = (left: unknown, right: unknown) => {
-  if (right === 0) {
-    throw new CelEvaluationError('Division by zero')
+  // Integer division by zero is an error, but double division by zero is
+  // IEEE-754: it yields ±Infinity or NaN. Only the integer case raises.
+  if ((isInt(left) || isUint(left)) && (isInt(right) || isUint(right))) {
+    if (right === 0) {
+      throw new CelEvaluationError('Division by zero')
+    }
+
+    return left / right
   }
 
-  // CEL does not support float division
-  if ((isInt(left) || isUint(left)) && (isInt(right) || isUint(right))) {
+  if (isCalculable(left) && isCalculable(right)) {
     return left / right
   }
 

@@ -59,11 +59,31 @@ export const HexInteger = createToken({
   pattern: /0x[0-9a-fA-F]+/,
 })
 
+export const OctalInteger = createToken({
+  name: 'OctalInteger',
+  pattern: /0o[0-7]+/,
+})
+
+export const BinaryInteger = createToken({
+  name: 'BinaryInteger',
+  pattern: /0b[01]+/,
+})
+
 export const Integer = createToken({ name: 'Integer', pattern: /0|[1-9]\d*/ })
 
 export const HexUnsignedInteger = createToken({
   name: 'HexUnsignedInteger',
   pattern: /0x[0-9a-fA-F]+[uU]/,
+})
+
+export const OctalUnsignedInteger = createToken({
+  name: 'OctalUnsignedInteger',
+  pattern: /0o[0-7]+[uU]/,
+})
+
+export const BinaryUnsignedInteger = createToken({
+  name: 'BinaryUnsignedInteger',
+  pattern: /0b[01]+[uU]/,
 })
 
 export const UnsignedInteger = createToken({
@@ -248,6 +268,10 @@ export const allTokens = [
   Float,
   HexUnsignedInteger,
   HexInteger,
+  OctalUnsignedInteger,
+  OctalInteger,
+  BinaryUnsignedInteger,
+  BinaryInteger,
   UnsignedInteger,
   Integer,
   True,

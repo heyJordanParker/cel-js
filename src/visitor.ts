@@ -775,6 +775,22 @@ export class CelVisitor
       return parseInt(ctx.HexUnsignedInteger[0].image.slice(2, -1), 16)
     }
 
+    if (ctx.OctalInteger) {
+      return parseInt(ctx.OctalInteger[0].image.slice(2), 8)
+    }
+
+    if (ctx.OctalUnsignedInteger) {
+      return parseInt(ctx.OctalUnsignedInteger[0].image.slice(2, -1), 8)
+    }
+
+    if (ctx.BinaryInteger) {
+      return parseInt(ctx.BinaryInteger[0].image.slice(2), 2)
+    }
+
+    if (ctx.BinaryUnsignedInteger) {
+      return parseInt(ctx.BinaryUnsignedInteger[0].image.slice(2, -1), 2)
+    }
+
     if (ctx.identifierExpression) {
       return this.visit(ctx.identifierExpression)
     }
