@@ -196,9 +196,11 @@ function walkMacroBody(
 function simpleIdentifier(node: CstNode): string | null {
   let current: CstNode | undefined = node
 
-  // Descend the single-child precedence chain down to the identifier.
+  // Descend the single-child precedence chain down to the identifier. The
+  // annotation is load-bearing: `current` is assigned from `nodes`, which is
+  // derived from `current`, and the inference has nowhere to start.
   while (current && current.name !== 'identifierExpression') {
-    const nodes = children(current).filter(isNode)
+    const nodes: CstNode[] = children(current).filter(isNode)
     if (nodes.length !== 1) return null
     current = nodes[0]
   }
