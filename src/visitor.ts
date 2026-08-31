@@ -33,6 +33,14 @@ import {
   size,
 } from './helper.js'
 import { CelEvaluationError } from './index.js'
+import {
+  contains,
+  createDate,
+  double,
+  join,
+  max,
+  sum,
+} from './functions.js'
 import { reservedIdentifiers } from './tokens.js'
 
 /** Mode in which visitors are executed */
@@ -62,6 +70,14 @@ const BaseCelVisitor = parserInstance.getBaseCstVisitorConstructor()
 const defaultFunctions = {
   has,
   size,
+  contains,
+  double,
+  join,
+  max,
+  sum,
+  // Dates render in UTC unless the host registers its own `date` for the
+  // timezone its readers are in.
+  date: createDate(),
 }
 
 export class CelVisitor
@@ -448,12 +464,21 @@ export class CelVisitor
     let left = this.visit(ctx.lhs)
 
     if (ctx.rhs) {
-      ctx.rhs.forEach((rhsOperand) => {
+      for (const rhsOperand of ctx.rhs) {
+        // Short circuit once the result is settled, so a right operand that
+        // would throw (an unknown method, a type error) is never reached. CEL
+        // defines `||` as short-circuiting, and without this a true left still
+        // evaluated every operand after it and one throwing operand failed the
+        // whole expression. The twin of conditionalAnd's `left === false`.
+        if (left === true) {
+          return true
+        }
+
         const right = this.visit(rhsOperand)
         const operator = ctx.LogicalOrOperator![0]
 
         left = getResult(operator, left, right)
-      })
+      }
     }
 
     return left
