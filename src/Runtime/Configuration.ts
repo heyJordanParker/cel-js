@@ -2,7 +2,6 @@ import { CallableExtension } from '../Extension/Callable/CallableExtension.js'
 import type { HostFunction } from '../Extension/Callable/CallableFunction.js'
 import { CoreExtension } from '../Extension/Core/CoreExtension.js'
 import { DateTimeExtension } from '../Extension/DateTime/DateTimeExtension.js'
-import { ISO_8601 } from '../Extension/DateTime/Function/DateFunction.js'
 import type { ExtensionInterface } from '../Extension/ExtensionInterface.js'
 import { ListExtension } from '../Extension/List/ListExtension.js'
 import { MathExtension } from '../Extension/Math/MathExtension.js'
@@ -24,8 +23,6 @@ import { TransformMapMacro } from '../Interpreter/Macro/TransformMapMacro.js'
 
 export interface ConfigurationOptions {
   functions?: Record<string, HostFunction>
-  timezone?: string
-  dateFormat?: string
 }
 
 export class Configuration {
@@ -53,7 +50,7 @@ export class Configuration {
 
     this.extensions = [
       new CoreExtension(),
-      new DateTimeExtension(options.timezone ?? 'UTC', options.dateFormat ?? ISO_8601),
+      new DateTimeExtension(),
       new StringExtension(),
       new ListExtension(),
       new MathExtension(),

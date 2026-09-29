@@ -116,6 +116,24 @@ describe('host functions', () => {
     })
   })
 
+  describe('timestamps', () => {
+    const instant = (value: unknown): string => (value instanceof Date ? value.toISOString() : 'not a date')
+    const instants = (values: unknown): string =>
+      Object.entries(values as Record<string, unknown>)
+        .map(([key, item]) => `${key}=${instant(item)}`)
+        .join(',')
+
+    it.each([
+      ['instant(timestamp("2026-09-30T03:30:00Z"))', '2026-09-30T03:30:00.000Z'],
+      ['instant(timestamp("2026-09-30T03:30:00.25Z"))', '2026-09-30T03:30:00.250Z'],
+      ['instant(timestamp("1969-12-31T23:59:58.5Z"))', '1969-12-31T23:59:58.500Z'],
+      ['instants([timestamp("2026-09-30T03:30:00Z")])', '0=2026-09-30T03:30:00.000Z'],
+      ['instants({"paid": timestamp("2026-09-30T03:30:00Z")})', 'paid=2026-09-30T03:30:00.000Z'],
+    ])('should hand %s to a host function as a Date', (expression, expected) => {
+      expect(value(expression, {}, { instant, instants })).toBe(expected)
+    })
+  })
+
   describe('unknown functions', () => {
     it('should throw when an unknown function is called', () => {
       expect(() => value('foo(bar)', { bar: 'bar' })).toThrow('Function `foo` is not defined')

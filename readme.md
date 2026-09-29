@@ -52,8 +52,6 @@ evaluate('user.role == "admin"', { user: { role: 'admin' } }).getRawValue() // =
 
 const configuration = new Configuration({
   functions: { shout: (text: string) => text.toUpperCase() },
-  timezone: 'Europe/Sofia',
-  dateFormat: 'M j, Y',
 })
 
 evaluate('shout(name)', { name: 'ada' }, configuration).getRawValue() // => 'ADA'

@@ -2,7 +2,6 @@ import type { FunctionInterface } from '../../Function/FunctionInterface.js'
 import type { BinaryOperatorOverloadInterface } from '../../Operator/BinaryOperatorOverloadInterface.js'
 import type { UnaryOperatorOverloadInterface } from '../../Operator/UnaryOperatorOverloadInterface.js'
 import type { ExtensionInterface } from '../ExtensionInterface.js'
-import { DateFunction, ISO_8601 } from './Function/DateFunction.js'
 import { DurationFunction } from './Function/DurationFunction.js'
 import { GetDateFunction } from './Function/GetDateFunction.js'
 import { GetDayOfMonthFunction } from './Function/GetDayOfMonthFunction.js'
@@ -18,14 +17,8 @@ import { NowFunction } from './Function/NowFunction.js'
 import { TimestampFunction } from './Function/TimestampFunction.js'
 
 export class DateTimeExtension implements ExtensionInterface {
-  constructor(
-    private readonly timezone = 'UTC',
-    private readonly defaultFormat = ISO_8601,
-  ) {}
-
   getFunctions(): FunctionInterface[] {
     return [
-      new DateFunction(this.timezone, this.defaultFormat),
       new NowFunction(),
       new TimestampFunction(),
       new DurationFunction(),
