@@ -1,20 +1,23 @@
+import { SPANS } from './Template/Grammar.js'
+
 /**
- * Where the bindings are in a piece of text, and which one the caret sits in.
+ * Where the expressions are in a piece of text, and which one the caret sits in.
  *
- * An editor offering completion inside a binding needs two answers: what is the
- * author typing right now, and where are the finished bindings so they can be
- * marked. Both are pure text analysis over the same grammar {@link Template}
- * renders, so an editor and a renderer never disagree about what a binding is.
+ * An editor offering completion inside an expression needs two answers: what is
+ * the author typing right now, and where are the finished expressions so they
+ * can be marked. Both are pure text analysis over the same grammar
+ * {@link Template} renders, so an editor and a renderer never disagree about
+ * what an expression is.
  *
  * No DOM and no catalog knowledge: whether a bare `@word` names anything real
  * is the caller's question, answered through the validator it passes in.
  */
 
-/** Which opener started a binding. */
+/** Which opener started an expression. */
 export type Opener = 'braces' | 'at'
 
 export interface DetectOptions {
-  /** Whether `@root.field` opens a binding. Off by default, as in the renderer. */
+  /** Whether `@root.field` opens an expression. Off by default, as in the renderer. */
   enableChains?: boolean
 }
 
@@ -29,23 +32,25 @@ export interface OpenQuery {
   query: string
 }
 
-/** A finished binding in the text. */
+/** A finished expression in the text. */
 export interface Span {
   opener: Opener
   /** Index of the opener's first character. */
   start: number
-  /** Index just past the binding: past `}}`, or past the chain. */
+  /** Index just past the expression: past `}}` or `}}}`, or past the chain. */
   end: number
-  /** The expression text: for `{{` the inner text, for `@` the bare chain. */
+  /** The expression's code, as {@link Template.parts} reads it. */
   inner: string
+  /** Whether its author wrote it as `{{{ }}}`. */
+  raw: boolean
   valid: boolean
 }
 
 /**
- * A validator's verdict on one candidate binding.
+ * A validator's verdict on one candidate expression.
  *
  * `drop` exists for the chain opener: a bare `@word` that names nothing is
- * prose, not a broken binding, so it is left alone rather than marked wrong.
+ * prose, not a broken expression, so it is left alone rather than marked wrong.
  */
 export type SpanVerdict = 'drop' | 'invalid' | 'valid'
 
@@ -82,11 +87,10 @@ function lastOpen(text: string, before: number): number {
  * the `@`. A chain is a root name that does not start with a digit, followed by
  * `.field` and `[n]` steps, ending at the first character outside that shape.
  *
- * A trailing dot is included, so a chain being typed reports `article.`. Span
- * finding trims a dot that sits before whitespace or the end of the text.
+ * A trailing dot is included, so a chain being typed reports `article.`.
  */
 function chainLength(text: string, from: number): number {
-  if (!isWordCharacter(text[from]) || /[0-9]/.test(text[from])) return 0
+  if (!isWordCharacter(text[from]) || /[0-9]/.test(text[from] as string)) return 0
 
   let index = from
   while (index < text.length && isWordCharacter(text[index])) index++
@@ -102,7 +106,7 @@ function chainLength(text: string, from: number): number {
 
     if (character === '[') {
       let scan = index + 1
-      while (scan < text.length && /[0-9]/.test(text[scan])) scan++
+      while (scan < text.length && /[0-9]/.test(text[scan] as string)) scan++
       if (text[scan] === ']' && scan > index + 1) {
         index = scan + 1
         continue
@@ -123,22 +127,21 @@ function bracesQuery(text: string, caret: number): OpenQuery | null {
 
   const before = text.slice(open + 2, caret)
 
-  // A `}}` between the opener and the caret means this binding already closed.
+  // A `}}` between the opener and the caret means this expression already closed.
   if (before.includes('}}')) return null
-  // A binding does not span lines.
+  // An expression does not span lines.
   if (before.includes('\n')) return null
-  // A second opener before the caret would nest a binding, which never happens.
+  // A second opener before the caret would nest an expression, which never happens.
   const nested = nextOpen(text, open + 2)
   if (nested !== -1 && nested + 2 <= caret) return null
 
   // Scan from one character before the caret so a `}}` straddling it is still
-  // found. If this binding closes after the caret with nothing interrupting,
-  // the caret sits inside a finished binding rather than an open one.
+  // found. If this expression closes after the caret with nothing interrupting,
+  // the caret sits inside a finished expression rather than an open one.
   const close = text.indexOf('}}', Math.max(open + 2, caret - 1))
   if (close !== -1) {
     const inner = nextOpen(text, caret)
-    const interrupted =
-      (inner !== -1 && inner < close) || text.slice(caret, close).includes('\n')
+    const interrupted = (inner !== -1 && inner < close) || text.slice(caret, close).includes('\n')
     if (!interrupted) return null
   }
 
@@ -157,22 +160,18 @@ function chainQuery(text: string, caret: number): OpenQuery | null {
   const query = text.slice(at + 1, caret)
   if (query.includes('\n')) return null
 
-  // Past the end of the chain the author has left the binding behind.
+  // Past the end of the chain the author has left the expression behind.
   if (caret > at + 1 + chainLength(text, at + 1)) return null
 
   return { opener: 'at', anchor: at, caret, query }
 }
 
 /**
- * The open binding the caret sits in, if any. Where both openers could claim
+ * The open expression the caret sits in, if any. Where both openers could claim
  * it, the one that opened nearest the caret wins, because that is the one the
  * author is inside.
  */
-export function detectQuery(
-  text: string,
-  caret: number,
-  options: DetectOptions = {},
-): OpenQuery | null {
+export function detectQuery(text: string, caret: number, options: DetectOptions = {}): OpenQuery | null {
   const braces = bracesQuery(text, caret)
   const chain = options.enableChains ? chainQuery(text, caret) : null
 
@@ -181,117 +180,39 @@ export function detectQuery(
   return braces ?? chain
 }
 
-/** The finished `{{ }}` binding at `open`, or where to resume when it never closes. */
-function bracesSpan(
-  text: string,
-  open: number,
-): { span: Omit<Span, 'valid'> | null; next: number } | null {
-  const close = text.indexOf('}}', open + 2)
-  if (close === -1) return null
-
-  // An opener before this one's closer means this opener never closed. Resume
-  // from the inner one.
-  const inner = nextOpen(text, open + 2)
-  if (inner !== -1 && inner < close) return { span: null, next: inner }
-
-  const end = close + 2
-
-  return {
-    span: {
-      opener: 'braces',
-      start: open,
-      end,
-      inner: text.slice(open + 2, close),
-    },
-    next: end,
-  }
-}
-
-/** The finished `@` chain at the `@`, or null when no chain forms. */
-function chainSpan(text: string, at: number): Omit<Span, 'valid'> | null {
-  if (isWordCharacter(text[at - 1])) return null
-
-  let length = chainLength(text, at + 1)
-  if (length === 0) return null
-
-  // A trailing dot before whitespace or the end is not part of the chain, so
-  // `@article. ` marks `@article`.
-  while (length > 0 && text[at + length] === '.') length--
-  if (length === 0) return null
-
-  const end = at + 1 + length
-
-  return { opener: 'at', start: at, end, inner: text.slice(at + 1, end) }
-}
-
-/** The next word-boundary `@` at or after `from`, or -1. */
-function nextChainOpen(text: string, from: number): number {
-  let index = text.indexOf('@', from)
-  while (index !== -1) {
-    if (!isWordCharacter(text[index - 1])) return index
-    index = text.indexOf('@', index + 1)
-  }
-  return -1
-}
-
-/** The lesser non-negative index, or -1 when both are -1. */
-function nearer(left: number, right: number): number {
-  if (left === -1) return right
-  if (right === -1) return left
-  return Math.min(left, right)
-}
-
 /**
- * Every finished binding in the text, in document order, each marked by the
+ * Every finished expression in the text, in document order, each marked by the
  * validator.
  *
- * A `{{` binding opens only once it has its own closer with no second opener in
- * between, so typing `{{ art` ahead of an existing `{{ x }}` marks only the
- * finished one. A `@` inside a `{{ }}` binding is never scanned, because the
- * brace binding consumes it.
+ * The spans come from the scan {@link Template.parts} splits a template with, so
+ * an editor marks exactly the expressions a render evaluates: `\{{` is text, a
+ * `{{{ }}}` span is one raw expression, and `{{ a {{ b }}` is one expression
+ * whose code is `a {{ b`.
  */
-export function findSpans(
-  text: string,
-  validate: SpanValidator,
-  options: DetectOptions = {},
-): Span[] {
+export function findSpans(text: string, validate: SpanValidator, options: DetectOptions = {}): Span[] {
   const spans: Span[] = []
-  let cursor = 0
 
-  while (cursor < text.length) {
-    const braceOpen = nextOpen(text, cursor)
-    const chainOpen = options.enableChains ? nextChainOpen(text, cursor) : -1
-    const next = nearer(braceOpen, chainOpen)
-    if (next === -1) break
+  for (const match of text.matchAll(SPANS)) {
+    const [whole, raw, inert, chain] = match
+    const start = match.index
+    const end = start + whole.length
+    const code = raw ?? inert
 
-    if (next === braceOpen) {
-      const found = bracesSpan(text, braceOpen)
-      if (!found) break
-
-      if (found.span) {
-        const inner = found.span.inner.trim()
-        const verdict = inner.length > 0 ? validate(inner, 'braces') : 'invalid'
-        if (verdict !== 'drop') {
-          spans.push({ ...found.span, valid: verdict === 'valid' })
-        }
+    if (code !== undefined) {
+      const verdict = code === '' ? 'invalid' : validate(code, 'braces')
+      if (verdict !== 'drop') {
+        spans.push({ opener: 'braces', start, end, inner: code, raw: raw !== undefined, valid: verdict === 'valid' })
       }
 
-      cursor = found.next
       continue
     }
 
-    const candidate = chainSpan(text, chainOpen)
-    if (!candidate) {
-      cursor = chainOpen + 1
-      continue
-    }
+    if (chain === undefined || !options.enableChains) continue
 
-    const verdict = validate(candidate.inner, 'at')
+    const verdict = validate(chain, 'at')
     if (verdict !== 'drop') {
-      spans.push({ ...candidate, valid: verdict === 'valid' })
+      spans.push({ opener: 'at', start, end, inner: chain, raw: false, valid: verdict === 'valid' })
     }
-
-    cursor = candidate.end
   }
 
   return spans

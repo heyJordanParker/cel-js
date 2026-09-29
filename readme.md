@@ -15,55 +15,19 @@
 > [!NOTE]  
 > There is also [a great implementation of cel-js](https://github.com/marcbachmann/cel-js) made by @marcbachmann. It has full syntax support and better performance. You may consider it too 🙂
 
-`cel-js` is a powerful and efficient parser and evaluator for Google's [Common Expression Language](https://github.com/google/cel-spec) (CEL), built on the robust foundation of the [Chevrotain](https://chevrotain.io/docs/) parsing library. This library aims to provide a seamless and easy-to-use interface for working with CEL in JavaScript environments.
-
-## Live Demo 🚀
-
-Try out `cel-js` in your browser with the [live demo](https://stackblitz.com/github/ChromeGG/cel-js/tree/main/demo?file=demo.ts).
+`cel-js` is a parser and evaluator for Google's [Common Expression Language](https://github.com/google/cel-spec) (CEL). It is a file-for-file port of the [`cel-php`](https://github.com/heyJordanParker/cel-php) fork, so an expression gives the same answer in the browser as on a PHP server.
 
 ## Features ✨
 
-- 🚀 Fast and Efficient Parsing: Leverages Chevrotain for high-performance parsing and evaluation
-- 🌍 Isomorphic: Ready for server and browser
+- 🌍 Isomorphic: Ready for server and browser, with no runtime dependencies
 - 📦 ESM support
-- 📚 Supported CEL Features:
-  - [x] Literals
-    - [x] int
-    - [x] uint
-    - [x] double
-    - [x] bool
-    - [x] string
-      - [x] single-quote string
-      - [x] double-quote string
-      - [ ] raw string
-      - [ ] triple-quote string
-      - [ ] byte string
-    - [x] hexadecimal
-    - [ ] bytes
-    - [x] list
-    - [x] map
-    - [x] null
-  - [x] Conditional Operators
-    - [x] Ternary (`condition ? true : false`)
-    - [x] Logical And (`&&`)
-    - [x] Logical Or (`||`)
-  - [x] Equality Operators (`==`, `!=`)
-  - [x] Relational Operators (`<`, `<=`, `>`, `>=`, `in`)
-  - [x] Arithmetic Operators (`+`, `-`, `*`, `/`, `%`)
-  - [x] Identifiers
-    - [x] Dot Notation (`foo.bar`)
-    - [x] Index Notation (`foo["bar"]`)
-  - [x] [Macros](https://github.com/google/cel-spec/blob/master/doc/langdef.md#macros): (`has`, `size`, etc.)
-    - [x] All (`e.all(x, p)`)
-    - [x] Exists (`e.exists(x, p)`)
-    - [x] Exists one (`e.exists_one(x, p)`)
-    - [x] Filter (`e.filter(x, p)`)
-    - [x] Has (`has(foo.bar)`)
-    - [x] Map (`e.map(x, t)` and `e.map(x, p, t)`)
-    - [x] Size (`size(foo)`)
-  - [x] Unary Operators (`!true`, `-123`)
-  - [x] Custom Functions (`myFunction()`)
-  - [x] Comments (`// This is a comment`)
+- 📚 The same language as `cel-php`:
+  - Every literal: int, uint, double, bool, string, bytes, list, map, null
+  - Every operator, including `??` and null-safe member and index access
+  - Optional selection (`a.?b`, `a[?b]`) with `or` and `orValue`
+  - The macros `has`, `all`, `exists`, `exists_one`, `existsOne`, `filter`, `map`, `transformList`, `transformMap`, `optMap` and `optFlatMap`
+  - The Core, DateTime, String, List and Math extensions, and host functions through `Configuration`
+- 🧩 `Template`, for expressions written inside text: `Hello {{ customer.firstName }}`
 
 ## Installation
 
@@ -77,36 +41,60 @@ npm i @heyjordanparker/cel-js
 
 ### `evaluate`
 
-`evaluate` is the primary function for parsing and evaluating CEL expressions. It takes an expression string and an optional object of variables to use in the expression.
+`evaluate` parses and runs an expression, and returns its value. Every failure throws an `Exception`.
 
 ```ts
-import { evaluate, parse } from '@heyjordanparker/cel-js'
+import { Configuration, evaluate } from '@heyjordanparker/cel-js'
 
-// use `evaluate` to parse and evaluate an expression
-evaluate('2 + 2 * 2') // => 6
+evaluate('2 + 2 * 2').getRawValue() // => 6
 
-evaluate('"foo" + "bar"') // => 'foobar'
+evaluate('user.role == "admin"', { user: { role: 'admin' } }).getRawValue() // => true
 
-evaluate('user.role == "admin"', { user: { role: 'admin' } }) // => true
+const configuration = new Configuration({
+  functions: { shout: (text: string) => text.toUpperCase() },
+  timezone: 'Europe/Sofia',
+  dateFormat: 'M j, Y',
+})
+
+evaluate('shout(name)', { name: 'ada' }, configuration).getRawValue() // => 'ADA'
 ```
 
-### `parse`
+### `Parser`
 
-`parse` is a lower-level function that only parses an expression string into an AST. This can be useful if you want to evaluate the expression multiple times with different variables or if you want to validate the syntax of an expression.
+`Parser` reads an expression into its syntax tree, and throws on invalid syntax.
 
 ```ts
-// use `parse` to parse an expression, useful for validation purposes
-const result = parse('2 + a')
+import { ExpressionKind, Parser } from '@heyjordanparker/cel-js'
 
-if (!result.isSuccess) {
-  // your business logic
-}
+new Parser().parse('2 + a').kind // => ExpressionKind.Binary
+```
 
-// you can reuse the result of `parse` to evaluate the expression
-evaluate(result.cst, { a: 2 }) // => 4
-evaluate(result.cst, { a: 4 }) // => 6
+### `Template`
+
+`Template` renders, splits and reads the expressions written inside text.
+
+```ts
+import { Template } from '@heyjordanparker/cel-js'
+
+new Template().render('Hi {{ name }}!', { name: 'Ada' }) // => 'Hi Ada!'
+
+Template.parts('Hi {{ name }}!') // => ['Hi ', { code: 'name', raw: false }, '!']
+
+Template.references('offers.map(o, o.price)') // => [['offers'], ['offers', null, 'price']]
 ```
 
 ## Known Issues
 
-- Errors types and messages are not 100% consistent with the cel-go implementation,
+Where JavaScript cannot hold what PHP holds, the two engines differ:
+
+- An int is a JavaScript number, so an int past 2^53 loses precision.
+- A whole number read from a variable is an int, so data written `4.0` reads as the int `4`. A host that means a double passes a `FloatValue`:
+
+  ```ts
+  import { evaluate, FloatValue } from '@heyjordanparker/cel-js'
+
+  evaluate('quantity / 2', { quantity: new FloatValue(5) }).getRawValue() // => 2.5
+  ```
+
+- `matches()` runs a JavaScript `RegExp`, not PCRE.
+- A span counts string characters, not bytes.

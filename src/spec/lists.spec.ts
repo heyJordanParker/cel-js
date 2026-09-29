@@ -1,189 +1,102 @@
 import { expect, describe, it } from 'vitest'
 
-import { CelEvaluationError, CelTypeError, evaluate } from '..'
-import { Operations } from '../helper'
+import { evaluate } from '..'
+import { NoSuchOverloadException } from '../Exception/NoSuchOverloadException'
+
+const value = (expression: string, variables: Record<string, unknown> = {}): unknown =>
+  evaluate(expression, variables).getRawValue()
 
 describe('lists expressions', () => {
   describe('literals', () => {
     it('should create a empty list', () => {
-      const expr = '[]'
-
-      const result = evaluate(expr)
-
-      expect(result).toStrictEqual([])
+      expect(value('[]')).toStrictEqual([])
     })
 
     it('should create a one element list', () => {
-      const expr = '[1]'
-
-      const result = evaluate(expr)
-
-      expect(result).toStrictEqual([1])
+      expect(value('[1]')).toStrictEqual([1])
     })
 
     it('should create a many element list', () => {
-      const expr = '[1, 2, 3]'
-
-      const result = evaluate(expr)
-
-      expect(result).toStrictEqual([1, 2, 3])
+      expect(value('[1, 2, 3]')).toStrictEqual([1, 2, 3])
     })
 
-    // Shall we throw an error if lists have different types?
-    // The original implementation does that if we put literals
-    // but no in case of context usage. So for now we will not throw an error
-    it.todo('should throw an error if lists have different types', () => {
-      const expr = '[1, true]'
-
-      const result = () => evaluate(expr)
-
-      expect(result).toThrow(new CelTypeError(Operations.logicalAnd, true, 1))
+    it('should create a list of mixed types', () => {
+      expect(value('[1, true]')).toStrictEqual([1, true])
     })
   })
 
   describe('lists', () => {
     it('should create a one element list', () => {
-      const expr = '[[1]]'
-
-      const result = evaluate(expr)
-
-      expect(result).toStrictEqual([[1]])
+      expect(value('[[1]]')).toStrictEqual([[1]])
     })
 
     it('should create a many element list', () => {
-      const expr = '[[1], [2], [3]]'
-
-      const result = evaluate(expr)
-
-      expect(result).toStrictEqual([[1], [2], [3]])
+      expect(value('[[1], [2], [3]]')).toStrictEqual([[1], [2], [3]])
     })
   })
 
   describe('index', () => {
     it('should access list by index', () => {
-      const expr = 'a[1]'
-
-      const context = { a: [1, 2, 3] }
-
-      const result = evaluate(expr, context)
-
-      expect(result).toBe(2)
+      expect(value('a[1]', { a: [1, 2, 3] })).toBe(2)
     })
 
     it('should access list by index if literal used', () => {
-      const expr = '[1, 2, 3][1]'
-
-      const context = { a: [1, 2, 3] }
-
-      const result = evaluate(expr, context)
-
-      expect(result).toBe(2)
+      expect(value('[1, 2, 3][1]')).toBe(2)
     })
 
     it('should access list on zero index', () => {
-      const expr = '[7, 8, 9][0]'
-
-      const result = evaluate(expr)
-
-      expect(result).toBe(7)
+      expect(value('[7, 8, 9][0]')).toBe(7)
     })
 
     it('should access first element if index 0.0', () => {
-      const expr = '[7, 8, 9][0.0]'
-
-      const result = evaluate(expr)
-
-      expect(result).toBe(7)
+      expect(value('[7, 8, 9][0.0]')).toBe(7)
     })
 
     it('should throw error on index 0.1', () => {
-      const expr = '[7, 8, 9][0.1]'
-
-      const result = () => evaluate(expr)
-
-      expect(result).toThrow(new CelEvaluationError('invalid_argument: 0.1'))
+      expect(() => value('[7, 8, 9][0.1]')).toThrow(NoSuchOverloadException)
+      expect(() => value('[7, 8, 9][0.1]')).toThrow('List indices must be an integer or integral double, got `double`')
     })
 
     it('should access list a singleton', () => {
-      const expr = '["foo"][0]'
-
-      const result = evaluate(expr)
-
-      expect(result).toBe('foo')
+      expect(value('["foo"][0]')).toBe('foo')
     })
 
     it('should access list on the last index', () => {
-      const expr = '[7, 8, 9][2]'
-
-      const result = evaluate(expr)
-
-      expect(result).toBe(9)
+      expect(value('[7, 8, 9][2]')).toBe(9)
     })
 
     it('should access the list on middle values', () => {
-      const expr = '[0, 1, 1, 2, 3, 5, 8, 13][4]'
-
-      const result = evaluate(expr)
-
-      expect(result).toBe(3)
+      expect(value('[0, 1, 1, 2, 3, 5, 8, 13][4]')).toBe(3)
     })
 
-    it('should throw an error if index out of bounds', () => {
-      const expr = '[1][5]'
-
-      const result = () => evaluate(expr)
-
-      expect(result).toThrow(new CelEvaluationError(`Index out of bounds: 5`))
+    it('should read an index out of bounds as null', () => {
+      expect(value('[1][5]')).toBeNull()
     })
   })
 
   describe('concatenation', () => {
     it('should concatenate two lists', () => {
-      const expr = '[1, 2] + [3, 4]'
-
-      const result = evaluate(expr)
-
-      expect(result).toStrictEqual([1, 2, 3, 4])
+      expect(value('[1, 2] + [3, 4]')).toStrictEqual([1, 2, 3, 4])
     })
 
     it('should concatenate two lists with the same element', () => {
-      const expr = '[2] + [2]'
-
-      const result = evaluate(expr)
-
-      expect(result).toStrictEqual([2, 2])
+      expect(value('[2] + [2]')).toStrictEqual([2, 2])
     })
 
     it('should return empty list if both elements are empty', () => {
-      const expr = '[] + []'
-
-      const result = evaluate(expr)
-
-      expect(result).toStrictEqual([])
+      expect(value('[] + []')).toStrictEqual([])
     })
 
     it('should return correct list if left side is empty', () => {
-      const expr = '[] + [1, 2]'
-
-      const result = evaluate(expr)
-
-      expect(result).toStrictEqual([1, 2])
+      expect(value('[] + [1, 2]')).toStrictEqual([1, 2])
     })
 
     it('should return correct list if right side is empty', () => {
-      const expr = '[1, 2] + []'
-
-      const result = evaluate(expr)
-
-      expect(result).toStrictEqual([1, 2])
+      expect(value('[1, 2] + []')).toStrictEqual([1, 2])
     })
 
-    it('should throw an error if lists have different types', () => {
-      const expr = '[1] + [true]'
-
-      const result = () => evaluate(expr)
-
-      expect(result).toThrow(new CelTypeError(Operations.addition, 1, true))
+    it('should concatenate lists of different types', () => {
+      expect(value('[1] + [true]')).toStrictEqual([1, true])
     })
   })
 })

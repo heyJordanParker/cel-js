@@ -1,101 +1,55 @@
 import { expect, describe, it } from 'vitest'
 
 import { evaluate } from '..'
-import { CelTypeError } from '../errors/CelTypeError'
-import { Operations } from '../helper'
+
+const value = (expression: string): unknown => evaluate(expression).getRawValue()
 
 describe('logical operators', () => {
   describe('AND', () => {
     it('should return true if second expressions are true', () => {
-      const expr = 'true && true'
-
-      const result = evaluate(expr)
-
-      expect(result).toBe(true)
+      expect(value('true && true')).toBe(true)
     })
 
     it('should return false if second expression is false', () => {
-      const expr = 'true && false'
-
-      const result = evaluate(expr)
-
-      expect(result).toBe(false)
+      expect(value('true && false')).toBe(false)
     })
 
     it('should return true if all expressions are true', () => {
-      const expr = 'true && true && true'
-
-      const result = evaluate(expr)
-
-      expect(result).toBe(true)
+      expect(value('true && true && true')).toBe(true)
     })
 
     it('should return false if at least one expressions is false', () => {
-      const expr = 'true && false && true'
-
-      const result = evaluate(expr)
-
-      expect(result).toBe(false)
+      expect(value('true && false && true')).toBe(false)
     })
 
-    it('should throw an error if one of types is not boolean', () => {
-      const expr = 'true && 1'
-
-      const result = () => evaluate(expr)
-
-      expect(result).toThrow(new CelTypeError(Operations.logicalAnd, true, 1))
+    it('should throw if the right operand is not a bool', () => {
+      expect(() => value('true && 1')).toThrow('No such overload for `bool` && `int`')
     })
   })
 
   describe('OR', () => {
     it('should return true if at least one expression is true', () => {
-      const expr = 'true || false'
-
-      const result = evaluate(expr)
-
-      expect(result).toBe(true)
+      expect(value('true || false')).toBe(true)
     })
 
     it('should return false if all expressions are false', () => {
-      const expr = 'false || false'
-
-      const result = evaluate(expr)
-
-      expect(result).toBe(false)
+      expect(value('false || false')).toBe(false)
     })
 
     it('should return true if at least expression is true', () => {
-      const expr = 'false || true || false'
-
-      const result = evaluate(expr)
-
-      expect(result).toBe(true)
+      expect(value('false || true || false')).toBe(true)
     })
   })
 
   it('should be able to combine AND and OR', () => {
-    const expr = 'true && true || false'
-
-    const result = evaluate(expr)
-
-    expect(result).toBe(true)
+    expect(value('true && true || false')).toBe(true)
   })
 
   it('should not reach the right operand once the left settles the result', () => {
-    // `||` short-circuits, so a true left operand settles the expression and
-    // the right is never evaluated — not even to check its type.
-    const expr = 'true || 1'
-
-    const result = evaluate(expr)
-
-    expect(result).toBe(true)
+    expect(value('true || 1')).toBe(true)
   })
 
-  it('should throw an error if one of types is not boolean', () => {
-    const expr = 'false || 1'
-
-    const result = () => evaluate(expr)
-
-    expect(result).toThrow(new CelTypeError(Operations.logicalOr, false, 1))
+  it('should throw if the right operand is not a bool', () => {
+    expect(() => value('false || 1')).toThrow('No such overload for `bool` || `int`')
   })
 })

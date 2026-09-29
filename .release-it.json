@@ -1,4 +1,7 @@
 {
+  "hooks": {
+    "before:init": ["pnpm lint", "pnpm run type-check", "pnpm test"]
+  },
   "git": {
     "commitMessage": "chore: release v${version}",
     "tagName": "v${version}"
@@ -7,7 +10,7 @@
     "release": true
   },
   "npm": {
-    "publish": true
+    "publish": false
   },
   "packageManager": "pnpm"
 }

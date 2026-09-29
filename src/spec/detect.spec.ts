@@ -10,7 +10,7 @@ describe('detectQuery in a brace binding', () => {
   it('reports the binding being typed', () => {
     const text = 'Hi {{ article.au'
 
-    expect(detectQuery(text, text.length)).toEqual({
+    expect(detectQuery(text, text.length)).toStrictEqual({
       opener: 'braces',
       anchor: 3,
       caret: 16,
@@ -61,7 +61,7 @@ describe('detectQuery with the chain opener', () => {
   it('reports the chain being typed when chains are on', () => {
     const text = 'write to @support.te'
 
-    expect(detectQuery(text, text.length, chains)).toEqual({
+    expect(detectQuery(text, text.length, chains)).toStrictEqual({
       opener: 'at',
       anchor: 9,
       caret: 20,
@@ -95,19 +95,31 @@ describe('detectQuery with the chain opener', () => {
 })
 
 describe('findSpans', () => {
-  it('finds a finished binding', () => {
-    expect(findSpans('Hi {{ a }}!', anything)).toEqual([
-      { opener: 'braces', start: 3, end: 10, inner: ' a ', valid: true },
+  it('finds a finished expression', () => {
+    expect(findSpans('Hi {{ a }}!', anything)).toStrictEqual([
+      { opener: 'braces', start: 3, end: 10, inner: 'a', raw: false, valid: true },
     ])
   })
 
-  it('finds several bindings in document order', () => {
-    const spans = findSpans('{{ a }} x {{ b }}', anything)
-
-    expect(spans.map((span) => span.inner.trim())).toEqual(['a', 'b'])
+  it('finds a raw expression as one span', () => {
+    expect(findSpans('Hi {{{ a }}}!', anything)).toStrictEqual([
+      { opener: 'braces', start: 3, end: 12, inner: 'a', raw: true, valid: true },
+    ])
   })
 
-  it('does not find an unfinished binding', () => {
+  it('reads an opener inside an expression as its code, as parts does', () => {
+    expect(findSpans('{{ a {{ b }}', anything)).toStrictEqual([
+      { opener: 'braces', start: 0, end: 12, inner: 'a {{ b', raw: false, valid: true },
+    ])
+  })
+
+  it('finds several expressions in document order', () => {
+    const spans = findSpans('{{ a }} x {{ b }}', anything)
+
+    expect(spans.map((span) => span.inner)).toStrictEqual(['a', 'b'])
+  })
+
+  it('does not find an unfinished expression', () => {
     expect(findSpans('{{ a }} and {{ b', anything)).toHaveLength(1)
   })
 
@@ -138,8 +150,8 @@ describe('findSpans with the chain opener', () => {
   })
 
   it('finds a chain when chains are on', () => {
-    expect(findSpans('write to @support.team', anything, chains)).toEqual([
-      { opener: 'at', start: 9, end: 22, inner: 'support.team', valid: true },
+    expect(findSpans('write to @support.team', anything, chains)).toStrictEqual([
+      { opener: 'at', start: 9, end: 22, inner: 'support.team', raw: false, valid: true },
     ])
   })
 
@@ -153,7 +165,7 @@ describe('findSpans with the chain opener', () => {
   it('does not scan a chain inside a brace binding', () => {
     const spans = findSpans('{{ a }} @b', anything, chains)
 
-    expect(spans.map((span) => span.opener)).toEqual(['braces', 'at'])
+    expect(spans.map((span) => span.opener)).toStrictEqual(['braces', 'at'])
   })
 
   it('leaves a dropped chain out, so prose stays prose', () => {
@@ -162,7 +174,7 @@ describe('findSpans with the chain opener', () => {
 
     const spans = findSpans('hi @everyone, see @article.title', verdict, chains)
 
-    expect(spans.map((span) => span.inner)).toEqual(['article.title'])
+    expect(spans.map((span) => span.inner)).toStrictEqual(['article.title'])
   })
 
   it('does not find a chain inside an email address', () => {

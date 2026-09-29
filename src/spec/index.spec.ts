@@ -1,49 +1,22 @@
 import { expect, describe, it } from 'vitest'
 
-import { Success, evaluate, parse } from '..'
-import { CelParseError } from '../errors/CelParseError'
+import { Exception, ExpressionKind, Parser, evaluate } from '..'
+import { UnexpectedEndOfFileException } from '../Parser/Exception/UnexpectedEndOfFileException'
 
 describe('index.ts', () => {
-  describe('parse', () => {
-    it('should return isSuccess true and cst if given string is valid CEL string', () => {
-      const expr = '1'
-
-      const result = parse(expr)
-
-      expect(result).toStrictEqual({
-        isSuccess: true,
-        cst: expect.any(Object),
-      })
+  describe('Parser', () => {
+    it('should return the expression tree of a valid CEL string', () => {
+      expect(new Parser().parse('1').kind).toBe(ExpressionKind.IntLiteral)
     })
 
-    it('should return isSuccess false and errors if given string is not valid CEL string', () => {
-      const expr = '1 +'
-
-      const result = parse(expr)
-
-      expect(result).toStrictEqual({
-        isSuccess: false,
-        errors: expect.any(Array),
-      })
+    it('should throw if given string is not valid CEL string', () => {
+      expect(() => new Parser().parse('1 +')).toThrow(UnexpectedEndOfFileException)
     })
   })
 
   describe('evaluate', () => {
-    it('should throw an error if given string is not valid CEL expression', () => {
-      const expr = '1 + '
-
-      const result = () => evaluate(expr)
-
-      expect(result).toThrow(CelParseError)
-      expect(result).toThrow('Given string is not a valid CEL expression: ')
+    it('should throw an engine exception if given string is not valid CEL expression', () => {
+      expect(() => evaluate('1 + ')).toThrow(Exception)
     })
-  })
-
-  it('should be able to reuse parse results in evaluate', () => {
-    const expr = '1'
-
-    const result = parse(expr)
-
-    expect(() => evaluate((result as Success).cst)).not.toThrow()
   })
 })

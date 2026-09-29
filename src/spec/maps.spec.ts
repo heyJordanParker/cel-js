@@ -1,12 +1,14 @@
 import { expect, describe, it } from 'vitest'
-import { CelEvaluationError, evaluate } from '..'
+import { evaluate } from '..'
+
+const value = (expression: string): unknown => evaluate(expression).getRawValue()
 
 describe('maps expressions', () => {
   describe('literal', () => {
     it('should create a empty map', () => {
       const expr = '{}'
 
-      const result = evaluate(expr)
+      const result = value(expr)
 
       expect(result).toStrictEqual({})
     })
@@ -14,7 +16,7 @@ describe('maps expressions', () => {
     it('should create a one element map', () => {
       const expr = '{"a": 1}'
 
-      const result = evaluate(expr)
+      const result = value(expr)
 
       expect(result).toStrictEqual({ a: 1 })
     })
@@ -22,17 +24,13 @@ describe('maps expressions', () => {
     it('should create a many element map', () => {
       const expr = '{"a": 1, "b": 2, "c": 3}'
 
-      const result = evaluate(expr)
+      const result = value(expr)
 
       expect(result).toStrictEqual({ a: 1, b: 2, c: 3 })
     })
 
-    it('should throw an error if maps have different types', () => {
-      const expr = '{"a": 1, "b": true}'
-
-      const result = () => evaluate(expr)
-
-      expect(result).toThrow(new CelEvaluationError('invalid_argument: true'))
+    it('should create a map of mixed value types', () => {
+      expect(value('{"a": 1, "b": true}')).toStrictEqual({ a: 1, b: true })
     })
   })
 
@@ -41,7 +39,7 @@ describe('maps expressions', () => {
       it('should get the value of a key', () => {
         const expr = '{"a": 1}.a'
 
-        const result = evaluate(expr)
+        const result = value(expr)
 
         expect(result).toBe(1)
       })
@@ -49,24 +47,16 @@ describe('maps expressions', () => {
       it('should return null if the key does not exist', () => {
         const expr = '{"a": 1}.b'
 
-        const result = evaluate(expr)
+        const result = value(expr)
 
         expect(result).toBeNull()
-      })
-
-      it.todo('should throw an error if the key is not a string', () => {
-        const expr = '{"a": 1}.1'
-
-        const result = () => evaluate(expr)
-
-        expect(result).toThrow('invalid_argument: 1')
       })
     })
     describe('index expression', () => {
       it('should get the value of a key', () => {
         const expr = '{"a": 1}["a"]'
 
-        const result = evaluate(expr)
+        const result = value(expr)
 
         expect(result).toBe(1)
       })
@@ -74,7 +64,7 @@ describe('maps expressions', () => {
       it('should return null if the key does not exist', () => {
         const expr = '{"a": 1}["b"]'
 
-        const result = evaluate(expr)
+        const result = value(expr)
 
         expect(result).toBeNull()
       })
@@ -82,7 +72,7 @@ describe('maps expressions', () => {
       it('should return null if the key is not present', () => {
         const expr = '{"a": 1}[1]'
 
-        const result = evaluate(expr)
+        const result = value(expr)
 
         expect(result).toBeNull()
       })
@@ -93,14 +83,14 @@ describe('maps expressions', () => {
     it('should compare two equal maps', () => {
       const expr = '{"c": 1, "a": 1, "b": 2} == {"a": 1, "b": 2, "c": 1}'
 
-      const result = evaluate(expr)
+      const result = value(expr)
 
       expect(result).toBe(true)
     })
     it('should compare two different maps', () => {
       const expr = '{"a": 1, "b": 2} == {"a": 1, "b": 2, "c": 1}'
 
-      const result = evaluate(expr)
+      const result = value(expr)
 
       expect(result).toBe(false)
     })
@@ -109,14 +99,14 @@ describe('maps expressions', () => {
     it('should compare two equal maps', () => {
       const expr = '{"c": 1, "a": 1, "b": 2} != {"a": 1, "b": 2, "c": 1}'
 
-      const result = evaluate(expr)
+      const result = value(expr)
 
       expect(result).toBe(false)
     })
     it('should compare two different maps', () => {
       const expr = '{"a": 1, "b": 2} != {"a": 1, "b": 2, "c": 1}'
 
-      const result = evaluate(expr)
+      const result = value(expr)
 
       expect(result).toBe(true)
     })
@@ -125,14 +115,14 @@ describe('maps expressions', () => {
     it('should find a key in the map', () => {
       const expr = '"c" in {"c": 1, "a": 1, "b": 2}'
 
-      const result = evaluate(expr)
+      const result = value(expr)
 
       expect(result).toBe(true)
     })
     it('should not find a key in the map', () => {
       const expr = '"z" in {"c": 1, "a": 1, "b": 2}'
 
-      const result = evaluate(expr)
+      const result = value(expr)
 
       expect(result).toBe(false)
     })

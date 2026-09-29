@@ -1,243 +1,128 @@
 import { expect, describe, it } from 'vitest'
 
-import { CelTypeError, evaluate } from '..'
-import { Operations } from '../helper'
+import { Configuration, evaluate } from '..'
+import { InvalidMacroCallException } from '../Exception/InvalidMacroCallException'
+import { NoSuchFunctionException } from '../Exception/NoSuchFunctionException'
+import type { HostFunction } from '../Extension/Callable/CallableFunction'
 
-describe('lists expressions', () => {
+const value = (
+  expression: string,
+  variables: Record<string, unknown> = {},
+  functions: Record<string, HostFunction> = {},
+): unknown => evaluate(expression, variables, new Configuration({ functions })).getRawValue()
+
+describe('macros', () => {
   describe('has', () => {
+    const context = { object: { property: true } }
+
     it('should return true when nested property exists', () => {
-      const expr = 'has(object.property)'
-
-      const result = evaluate(expr, { object: { property: true } })
-
-      expect(result).toBe(true)
+      expect(value('has(object.property)', context)).toBe(true)
     })
 
     it('should return false when property does not exists', () => {
-      const expr = 'has(object.nonExisting)'
-
-      const result = evaluate(expr, { object: { property: true } })
-
-      expect(result).toBe(false)
+      expect(value('has(object.nonExisting)', context)).toBe(false)
     })
 
     it('should return false when property does not exists, combined with property usage', () => {
-      const expr = 'has(object.nonExisting) && object.nonExisting'
-
-      const result = evaluate(expr, { object: { property: true } })
-
-      expect(result).toBe(false)
+      expect(value('has(object.nonExisting) && object.nonExisting', context)).toBe(false)
     })
 
     it('should throw when no arguments are passed', () => {
-      const expr = 'has()'
-      const context = { object: { property: true } }
-
-      expect(() => evaluate(expr, context)).toThrow(
-        'has() requires exactly one argument',
-      )
+      expect(() => value('has()', context)).toThrow(NoSuchFunctionException)
     })
 
-    it('should throw when argument is not an object', () => {
-      const context = { object: { property: true } }
-      const errorMessages = 'has() requires a field selection'
-
-      expect(() => evaluate('has(object)', context)).toThrow(errorMessages)
-
-      expect(() => evaluate('has(object[0])', context)).toThrow(errorMessages)
-
-      expect(() => evaluate('has(object[property])', context)).toThrow(
-        errorMessages,
-      )
-    })
-
-    describe('should throw when argument is an atomic expresion of type', () => {
-      const errorMessages = 'has() does not support atomic expressions'
-      const context = { object: { property: true } }
-
-      it('string', () => {
-        expect(() => evaluate('has("")', context)).toThrow(errorMessages)
-
-        expect(() => evaluate('has("string")', context)).toThrow(errorMessages)
-      })
-
-      it('array', () => {
-        expect(() => evaluate('has([])', context)).toThrow(errorMessages)
-
-        expect(() => evaluate('has([1, 2, 3])', context)).toThrow(errorMessages)
-      })
-
-      it('boolean', () => {
-        expect(() => evaluate('has(true)', context)).toThrow(errorMessages)
-
-        expect(() => evaluate('has(false)', context)).toThrow(errorMessages)
-      })
-
-      it('number', () => {
-        expect(() => evaluate('has(42)', context)).toThrow(errorMessages)
-
-        expect(() => evaluate('has(0)', context)).toThrow(errorMessages)
-
-        expect(() => evaluate('has(0.3)', context)).toThrow(errorMessages)
-      })
-    })
+    it.each(['has(object)', 'has(object[0])', 'has(object[property])', 'has("")', 'has([1, 2, 3])', 'has(true)', 'has(42)'])(
+      'should throw when %s holds no member access',
+      (expression) => {
+        expect(() => value(expression, context)).toThrow(InvalidMacroCallException)
+        expect(() => value(expression, context)).toThrow(
+          'The `has` macro requires a single member access expression as an argument.',
+        )
+      },
+    )
   })
 
   describe('size', () => {
     describe('list', () => {
       it('should return 0 for empty list', () => {
-        const expr = 'size([])'
-
-        const result = evaluate(expr)
-
-        expect(result).toBe(0)
+        expect(value('size([])')).toBe(0)
       })
 
       it('should return 1 for one element list', () => {
-        const expr = 'size([1])'
-
-        const result = evaluate(expr)
-
-        expect(result).toBe(1)
+        expect(value('size([1])')).toBe(1)
       })
 
       it('should return 3 for three element list', () => {
-        const expr = 'size([1, 2, 3])'
-
-        const result = evaluate(expr)
-
-        expect(result).toBe(3)
+        expect(value('size([1, 2, 3])')).toBe(3)
       })
     })
 
     describe('map', () => {
       it('should return 0 for empty map', () => {
-        const expr = 'size({})'
-
-        const result = evaluate(expr)
-
-        expect(result).toBe(0)
+        expect(value('size({})')).toBe(0)
       })
 
       it('should return 1 for one element map', () => {
-        const expr = 'size({"a": 1})'
-
-        const result = evaluate(expr)
-
-        expect(result).toBe(1)
+        expect(value('size({"a": 1})')).toBe(1)
       })
 
       it('should return 3 for three element map', () => {
-        const expr = 'size({"a": 1, "b": 2, "c": 3})'
-
-        const result = evaluate(expr)
-
-        expect(result).toBe(3)
+        expect(value('size({"a": 1, "b": 2, "c": 3})')).toBe(3)
       })
     })
 
     describe('string', () => {
       it('should return 0 for empty string', () => {
-        const expr = 'size("")'
-
-        const result = evaluate(expr)
-
-        expect(result).toBe(0)
+        expect(value('size("")')).toBe(0)
       })
 
       it('should return length of string', () => {
-        const expr = 'size("abc")'
-
-        const result = evaluate(expr)
-
-        expect(result).toBe(3)
+        expect(value('size("abc")')).toBe(3)
       })
-    })
-
-    it.todo('should thrown an error if operator is not string or list', () => {
-      const expr = 'size(123)'
-
-      const result = () => evaluate(expr)
-
-      expect(result).toThrow(new CelTypeError(Operations.addition, 123, 123))
     })
   })
 })
 
-describe('custom functions', () => {
+describe('host functions', () => {
   describe('single argument', () => {
-    it('should execute a single argument custom function', () => {
-      const expr = 'foo(bar)'
-
-      const foo = (arg: unknown) => {
-        return `foo:${arg}`
-      }
-
-      const result = evaluate(expr, { bar: 'bar' }, { foo })
-
-      expect(result).toBe('foo:bar')
+    it('should execute a single argument host function', () => {
+      expect(value('foo(bar)', { bar: 'bar' }, { foo: (arg: unknown) => `foo:${arg}` })).toBe('foo:bar')
     })
   })
 
   describe('multi argument', () => {
-    it('should execute a two argument custom function', () => {
-      const expr = 'foo(bar, 42)'
+    it('should execute a two argument host function', () => {
+      const foo = (thing: unknown, intensity: unknown) => `foo:${thing} ${intensity}`
 
-      const foo = (thing: unknown, intensity: unknown) => {
-        return `foo:${thing} ${intensity}`
-      }
-
-      const result = evaluate(expr, { bar: 'bar' }, { foo })
-
-      expect(result).toBe('foo:bar 42')
+      expect(value('foo(bar, 42)', { bar: 'bar' }, { foo })).toBe('foo:bar 42')
     })
   })
 
-  describe('interaction with default functions', () => {
-    it('should preserve default functions when custom functions specified', () => {
-      const expr = 'foo(bar, size("ubernete"), true)'
+  describe('interaction with engine functions', () => {
+    const foo = (thing: unknown, intensity: unknown, enable: unknown) => `foo:${thing} ${intensity} ${enable}`
 
-      const foo = (thing, intensity, enable) => {
-        return `foo:${thing} ${intensity} ${enable}`
-      }
-
-      const result = evaluate(expr, { bar: 'bar' }, { foo: foo })
-
-      expect(result).toBe('foo:bar 8 true')
+    it('should keep engine functions beside host functions', () => {
+      expect(value('foo(bar, size("ubernete"), true)', { bar: 'bar' }, { foo })).toBe('foo:bar 8 true')
     })
 
-    it('should allow overriding default functions', () => {
-      const expr = 'foo(bar, size("ubernete"), true)'
-
-      const foo = (thing, intensity, enable) => {
-        return `foo:${thing} ${intensity} ${enable}`
-      }
-
-      const result = evaluate(
-        expr,
-        { bar: 'bar' },
-        { foo: foo, size: () => 'strange' },
+    it('should run an engine overload before a host function of the same name', () => {
+      expect(value('foo(bar, size("ubernete"), true)', { bar: 'bar' }, { foo, size: () => 'strange' })).toBe(
+        'foo:bar 8 true',
       )
+    })
 
-      expect(result).toBe('foo:bar strange true')
+    it('should run a host function where no engine overload takes the arguments', () => {
+      expect(value('size(123)', {}, { size: () => 'strange' })).toBe('strange')
     })
   })
 
   describe('unknown functions', () => {
     it('should throw when an unknown function is called', () => {
-      const expr = 'foo(bar)'
-
-      const result = () => evaluate(expr)
-
-      expect(result).toThrow('Macros foo not recognized')
+      expect(() => value('foo(bar)', { bar: 'bar' })).toThrow('Function `foo` is not defined')
     })
 
     it('should not treat context values as first-class functions', () => {
-      const expr = 'foo(bar)'
-
-      const result = () => evaluate(expr, { foo: 'foo', bar: 'bar' })
-
-      expect(result).toThrow('Macros foo not recognized')
+      expect(() => value('foo(bar)', { foo: 'foo', bar: 'bar' })).toThrow(NoSuchFunctionException)
     })
   })
 })

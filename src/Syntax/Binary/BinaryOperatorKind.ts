@@ -1,0 +1,17 @@
+export enum BinaryOperatorKind {
+  LessThan = '<',
+  LessThanOrEqual = '<=',
+  GreaterThan = '>',
+  GreaterThanOrEqual = '>=',
+  Equal = '==',
+  NotEqual = '!=',
+  In = 'in',
+  Plus = '+',
+  Minus = '-',
+  Multiply = '*',
+  Divide = '/',
+  Modulo = '%',
+  And = '&&',
+  Or = '||',
+  Coalesce = '??',
+}

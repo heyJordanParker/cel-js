@@ -1,0 +1,16 @@
+export enum ValueKind {
+  Boolean = 'bool',
+  Bytes = 'bytes',
+  Float = 'float',
+  Integer = 'int',
+  List = 'list',
+  Map = 'map',
+  Message = 'message',
+  Null = 'null',
+  String = 'string',
+  UnsignedInteger = 'uint',
+  Duration = 'duration',
+  Timestamp = 'timestamp',
+  Optional = 'optional_type',
+  Type = 'type',
+}

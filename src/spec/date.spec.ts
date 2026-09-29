@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { createDate, evaluate } from '../index.js'
+import { Configuration, evaluate } from '../index.js'
+
+const value = (
+  expression: string,
+  variables: Record<string, unknown> = {},
+  configuration: Configuration = new Configuration(),
+): unknown => evaluate(expression, variables, configuration).getRawValue()
 
 /**
  * The `date()` format contract.
@@ -10,15 +16,14 @@ import { createDate, evaluate } from '../index.js'
  * it there breaks that.
  */
 describe('date() format characters', () => {
-  const on = (pattern: string, value = '2026-06-11') =>
-    evaluate(`date(value, pattern)`, { value, pattern })
+  const on = (pattern: string, moment = '2026-06-11') => value(`date(moment, pattern)`, { moment, pattern })
 
   it('uses ISO 8601 as the library default format', () => {
-    expect(evaluate('date("2026-06-11")')).toBe('2026-06-11T00:00:00')
+    expect(value('date("2026-06-11")')).toBe('2026-06-11T00:00:00')
   })
 
   it('falls back to the default format for an empty one', () => {
-    expect(evaluate('date("2026-06-11", "")')).toBe('2026-06-11T00:00:00')
+    expect(value('date("2026-06-11", "")')).toBe('2026-06-11T00:00:00')
   })
 
   it('renders numeric year, month and day', () => {
@@ -60,7 +65,7 @@ describe('date() format characters', () => {
 
 describe('date() characters outside the set', () => {
   const on = (pattern: string) =>
-    evaluate('date(value, pattern)', { value: '2026-06-11', pattern })
+    value('date(value, pattern)', { value: '2026-06-11', pattern })
 
   it('renders a timezone character as itself', () => {
     expect(on('Y T')).toBe('2026 T')
@@ -87,7 +92,7 @@ describe('date() characters outside the set', () => {
 
 describe('date() escaping', () => {
   const on = (pattern: string) =>
-    evaluate('date(value, pattern)', { value: '2026-06-11', pattern })
+    value('date(value, pattern)', { value: '2026-06-11', pattern })
 
   it('renders the character after a backslash literally', () => {
     expect(on('\\Y Y')).toBe('Y 2026')
@@ -100,64 +105,62 @@ describe('date() escaping', () => {
 
 describe('date() values', () => {
   it('reads a unix second count', () => {
-    expect(evaluate('date(0, "Y-m-d")')).toBe('1970-01-01')
+    expect(value('date(0, "Y-m-d")')).toBe('1970-01-01')
   })
 
   it('reads a fractional unix second count', () => {
-    expect(evaluate('date(86400.9, "Y-m-d")')).toBe('1970-01-02')
+    expect(value('date(86400.9, "Y-m-d")')).toBe('1970-01-02')
   })
 
   it('keeps the fraction of a unix second count', () => {
-    expect(evaluate('date(86400.9, "H:i:s.v")')).toBe('00:00:00.900')
+    expect(value('date(86400.9, "H:i:s.v")')).toBe('00:00:00.900')
   })
 
   it('reads a string carrying its own offset', () => {
-    expect(evaluate('date("2026-06-11T15:04:05Z", "Y-m-d H:i")')).toBe(
+    expect(value('date("2026-06-11T15:04:05Z", "Y-m-d H:i")')).toBe(
       '2026-06-11 15:04',
     )
   })
 
   it('reads a variable carrying a date string', () => {
     expect(
-      evaluate('date(order.placedAt, "Y-m-d")', {
+      value('date(order.placedAt, "Y-m-d")', {
         order: { placedAt: '2026-06-11 15:04:05' },
       }),
     ).toBe('2026-06-11')
   })
 
   it('reads null as the current moment', () => {
-    expect(evaluate('size(date(null, "Y")) == 4')).toBe(true)
+    expect(value('size(date(null, "Y")) == 4')).toBe(true)
   })
 
   it('reads an empty string as the current moment', () => {
-    expect(evaluate('size(date("", "Y")) == 4')).toBe(true)
+    expect(value('size(date("", "Y")) == 4')).toBe(true)
   })
 
   it('reads no argument at all as the current moment', () => {
-    expect(evaluate('size(date()) > 0')).toBe(true)
+    expect(value('size(date()) > 0')).toBe(true)
   })
 })
 
 describe('date() wired by a host', () => {
-  const host = (timeZone: string, defaultFormat?: string) => ({
-    date: createDate(timeZone, defaultFormat),
-  })
+  const host = (timezone: string, dateFormat?: string) => new Configuration({ timezone, dateFormat })
 
   it('uses the host default format', () => {
-    expect(evaluate('date("2026-06-11")', {}, host('UTC', 'M j, Y'))).toBe(
+    expect(value('date("2026-06-11")', {}, host('UTC', 'M j, Y'))).toBe(
       'Jun 11, 2026',
     )
   })
 
   it('lets a call name its own format over the host default', () => {
-    expect(evaluate('date("2026-06-11", "Y")', {}, host('UTC', 'M j, Y'))).toBe(
+    expect(value('date("2026-06-11", "Y")', {}, host('UTC', 'M j, Y'))).toBe(
       '2026',
     )
   })
 
   it('renders in the host timezone', () => {
     expect(
-      evaluate(
+      value(
         'date("2026-06-11T23:30:00Z", "Y-m-d H:i")',
         {},
         host('Australia/Sydney'),
@@ -167,7 +170,7 @@ describe('date() wired by a host', () => {
 
   it('reads a string without an offset as the host timezone wall clock', () => {
     expect(
-      evaluate(
+      value(
         'date("2026-06-11 09:30", "Y-m-d H:i")',
         {},
         host('Australia/Sydney'),

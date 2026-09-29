@@ -1,73 +1,42 @@
 import { expect, describe, it } from 'vitest'
 
 import { evaluate } from '..'
-import { CelTypeError } from '../errors/CelTypeError'
-import { Operations } from '../helper'
+import { NoSuchOverloadException } from '../Exception/NoSuchOverloadException'
 
 describe('addition', () => {
   it('should evaluate addition', () => {
-    const expr = '1 + 1'
-
-    const result = evaluate(expr)
-
-    expect(result).toBe(2)
+    expect(evaluate('1 + 1').getRawValue()).toBe(2)
   })
 
   it('should evaluate subtraction', () => {
-    const expr = '1 - 1'
-
-    const result = evaluate(expr)
-
-    expect(result).toBe(0)
+    expect(evaluate('1 - 1').getRawValue()).toBe(0)
   })
 
   it('should evaluate addition with multiple terms', () => {
-    const expr = '1 + 1 + 1'
-
-    const result = evaluate(expr)
-
-    expect(result).toBe(3)
+    expect(evaluate('1 + 1 + 1').getRawValue()).toBe(3)
   })
 
   it('should evaluate addition with multiple terms with different signs', () => {
-    const expr = '1 + 1 - 1'
-
-    const result = evaluate(expr)
-
-    expect(result).toBe(1)
+    expect(evaluate('1 + 1 - 1').getRawValue()).toBe(1)
   })
 
   it('should evaluate float addition', () => {
-    const expr = '0.333 + 0.333'
-
-    const result = evaluate(expr)
-
-    expect(result).toBe(0.666)
+    expect(evaluate('0.333 + 0.333').getRawValue()).toBe(0.666)
   })
 
   it('should concatenate strings', () => {
-    const expr = '"a" + "b"'
-
-    const result = evaluate(expr)
-
-    expect(result).toBe('ab')
+    expect(evaluate('"a" + "b"').getRawValue()).toBe('ab')
   })
 
   describe('should throw when', () => {
     it('is a boolean', () => {
-      const expr = 'true + 1'
-
-      const result = () => evaluate(expr)
-
-      expect(result).toThrow(new CelTypeError(Operations.addition, true, 1))
+      expect(() => evaluate('true + 1')).toThrow(NoSuchOverloadException)
+      expect(() => evaluate('true + 1')).toThrow('No such overload for `bool` + `int`')
     })
 
     it('is a null', () => {
-      const expr = 'null + 1'
-
-      const result = () => evaluate(expr)
-
-      expect(result).toThrow(new CelTypeError(Operations.addition, null, 1))
+      expect(() => evaluate('null + 1')).toThrow(NoSuchOverloadException)
+      expect(() => evaluate('null + 1')).toThrow('No such overload for `null_type` + `int`')
     })
   })
 })

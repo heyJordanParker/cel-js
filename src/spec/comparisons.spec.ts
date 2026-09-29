@@ -1,102 +1,54 @@
 import { expect, describe, it } from 'vitest'
 
-import { CelTypeError, evaluate } from '..'
-import { Operations } from '../helper'
+import { evaluate } from '..'
+import { NoSuchOverloadException } from '../Exception/NoSuchOverloadException'
+
+const value = (expression: string): unknown => evaluate(expression).getRawValue()
 
 describe('comparisons', () => {
   it('should evaluate greater than operator', () => {
-    const expr = '2 > 1'
-
-    const result = evaluate(expr)
-
-    expect(result).toBe(true)
+    expect(value('2 > 1')).toBe(true)
   })
 
   it('should evaluate less than operator', () => {
-    const expr = '2 < 1'
-
-    const result = evaluate(expr)
-
-    expect(result).toBe(false)
+    expect(value('2 < 1')).toBe(false)
   })
 
   it('should evaluate greater than or equal operator', () => {
-    const expr = '1 >= 1'
-    const result = evaluate(expr)
-
-    expect(result).toBe(true)
+    expect(value('1 >= 1')).toBe(true)
   })
 
   it('should evaluate less than or equal operator', () => {
-    const expr = '1 <= 1'
-
-    const result = evaluate(expr)
-
-    expect(result).toBe(true)
+    expect(value('1 <= 1')).toBe(true)
   })
 
   it('should evaluate equal operator', () => {
-    const expr = '1 == 1'
-
-    const result = evaluate(expr)
-
-    expect(result).toBe(true)
+    expect(value('1 == 1')).toBe(true)
   })
 
   it('should evaluate not equal operator', () => {
-    const expr = '1 != 1'
-
-    const result = evaluate(expr)
-
-    expect(result).toBe(false)
+    expect(value('1 != 1')).toBe(false)
   })
 
   describe('in', () => {
     it('should return false for element in empty list', () => {
-      const expr = '1 in []'
-
-      const result = evaluate(expr)
-
-      expect(result).toBe(false)
+      expect(value('1 in []')).toBe(false)
     })
 
     it('should return true for element the only element on the list', () => {
-      const expr = '1 in [1]'
-
-      const result = evaluate(expr)
-
-      expect(result).toBe(true)
+      expect(value('1 in [1]')).toBe(true)
     })
 
     it('should return true for element the first element of the list', () => {
-      const expr = '"first" in ["first", "second", "third"]'
-
-      const result = evaluate(expr)
-
-      expect(result).toBe(true)
+      expect(value('"first" in ["first", "second", "third"]')).toBe(true)
     })
 
     it('should thrown an error if used on something else than list', () => {
-      const expr = '"a" in "asd"'
-
-      const result = () => evaluate(expr)
-
-      expect(result).toThrow(
-        new CelTypeError(Operations.in, 'string', 'string'),
-      )
+      expect(() => value('"a" in "asd"')).toThrow(NoSuchOverloadException)
     })
 
-    it.each(['"install"', '"inin"', '"stalin"'])(
-      'should not be recognized in string',
-      (aString) => {
-        const expr = aString
-
-        const result = evaluate(expr)
-
-        const expected = aString.slice(1, -1) // remove quotes
-
-        expect(result).toBe(expected)
-      },
-    )
+    it.each(['"install"', '"inin"', '"stalin"'])('should not be recognized in string', (aString) => {
+      expect(value(aString)).toBe(aString.slice(1, -1))
+    })
   })
 })

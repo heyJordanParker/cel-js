@@ -4,12 +4,17 @@ name: Release
 # published. The package name is scoped to the repository owner
 # (`@heyjordanparker/cel-js`) because the bare `cel-js` name is owned upstream.
 #
+# npm trusts this workflow through trusted publishing (OIDC), so no npm token is
+# stored anywhere. The package's settings on npmjs.com name this repository and
+# `release.yml` as its trusted publisher. Trusted publishing needs npm 11.5.1 or
+# later, and pnpm 10 does not support it, so pnpm installs and npm publishes.
+#
 # `dist/` is gitignored and never committed. It is built fresh here by the
-# `prepack` lifecycle script that `pnpm publish` runs, and shipped inside the
+# `prepack` lifecycle script that `npm publish` runs, and shipped inside the
 # published tarball via the package's `files` allowlist.
 #
-# Cut a release by bumping the version, pushing a tag, and publishing a GitHub
-# Release for that tag — this workflow does the rest.
+# Cut a release with `pnpm release`: it bumps the version, commits, tags, pushes
+# and publishes the GitHub Release, and this workflow does the rest.
 
 on:
   release:
@@ -17,6 +22,7 @@ on:
 
 permissions:
   contents: read
+  id-token: write
 
 jobs:
   publish:
@@ -33,14 +39,24 @@ jobs:
       - name: Install Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20.10.0
+          node-version: 24
           cache: pnpm
           registry-url: https://registry.npmjs.org
+
+      - name: Install npm with trusted publishing
+        run: npm install --global npm@11
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Lint
+        run: pnpm lint
+
+      - name: Type-check
+        run: pnpm run type-check
+
+      - name: Test
+        run: pnpm test
+
       - name: Publish to npm
-        run: pnpm publish --access public --no-git-checks
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --access public
