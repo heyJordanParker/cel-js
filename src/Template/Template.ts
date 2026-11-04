@@ -28,13 +28,18 @@ export interface TemplateOptions extends ConfigurationOptions {
   onFailure?: (expression: string, error: unknown) => unknown
 }
 
-type Role = 'item' | 'key' | 'value'
+export type Role = 'item' | 'key' | 'value'
 
 type Scope = Map<string, Reference | null>
 
 type Read = { path: Reference | null; free: boolean; written: Segment[]; nodes: Node[] }
 
-const COMPREHENSIONS = new Map<string, Map<number, Role[]>>([
+/**
+ * The macros that bind variables, by name and argument count, with the role of
+ * each variable they bind: `item` is one element of the target, `key` is an
+ * index or map key, and `value` is what an optional holds.
+ */
+export const COMPREHENSIONS = new Map<string, Map<number, Role[]>>([
   ['map', new Map([[2, ['item']], [3, ['item']]])],
   ['filter', new Map([[2, ['item']]])],
   ['all', new Map([[2, ['item']], [3, ['key', 'item']]])],
@@ -63,7 +68,8 @@ function collection(value: unknown): unknown[] | null {
   return null
 }
 
-function literalSegment(index: Expression): Segment {
+/** The segment a literal index names, or null for an index computed at run time. */
+export function literalSegment(index: Expression): Segment {
   if (index instanceof IntegerLiteralExpression || index instanceof StringLiteralExpression) {
     return index.value
   }

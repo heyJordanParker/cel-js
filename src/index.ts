@@ -1,3 +1,8 @@
+export { Checker } from './Checker/Checker.js'
+export { ExpressionCheck } from './Checker/ExpressionCheck.js'
+export { Issue, IssueKind } from './Checker/Issue.js'
+export { Type, TypeKind } from './Checker/Type.js'
+export type { TypeProvider } from './Checker/TypeProvider.js'
 export { Exception } from './Exception/Exception.js'
 export { evaluate } from './functions.js'
 export { Parser } from './Parser/Parser.js'
