@@ -15,7 +15,7 @@ import type { Node } from '../Syntax/Node.js'
 import { ParenthesizedExpression } from '../Syntax/ParenthesizedExpression.js'
 import { AT_CHAIN, ESCAPED_OPEN, SPANS, WHOLE_EXECUTABLE, WHOLE_INERT } from './Grammar.js'
 
-export type Part = string | { code: string; raw: boolean }
+export type Part = string | { code: string; raw: boolean; source: string }
 
 export type Segment = string | number | null
 
@@ -283,7 +283,7 @@ export class Template {
         pending = ''
       }
 
-      parts.push({ code, raw: match[1] !== undefined })
+      parts.push({ code, raw: match[1] !== undefined, source: whole })
     }
 
     pending += template.slice(offset)
@@ -294,7 +294,7 @@ export class Template {
     return parts
   }
 
-  static compose(parts: Part[]): string {
+  static compose(parts: (string | { code: string; raw: boolean })[]): string {
     let template = ''
 
     for (const part of parts) {

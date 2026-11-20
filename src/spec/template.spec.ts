@@ -367,19 +367,19 @@ describe('rename', () => {
 
 describe('parts', () => {
   it('splits text from expressions', () => {
-    expect(Template.parts('Hi {{ name }}!')).toStrictEqual(['Hi ', { code: 'name', raw: false }, '!'])
+    expect(Template.parts('Hi {{ name }}!')).toStrictEqual(['Hi ', { code: 'name', raw: false, source: '{{ name }}' }, '!'])
   })
 
   it('marks a raw expression', () => {
-    expect(Template.parts('{{{ html }}}')).toStrictEqual([{ code: 'html', raw: true }])
+    expect(Template.parts('{{{ html }}}')).toStrictEqual([{ code: 'html', raw: true, source: '{{{ html }}}' }])
   })
 
   it('trims the code', () => {
-    expect(Template.parts('{{   a   }}')).toStrictEqual([{ code: 'a', raw: false }])
+    expect(Template.parts('{{   a   }}')).toStrictEqual([{ code: 'a', raw: false, source: '{{   a   }}' }])
   })
 
   it('reads an escaped opener as text', () => {
-    expect(Template.parts('\\{{ literal }} {{ a }}')).toStrictEqual(['{{ literal }} ', { code: 'a', raw: false }])
+    expect(Template.parts('\\{{ literal }} {{ a }}')).toStrictEqual(['{{ literal }} ', { code: 'a', raw: false, source: '{{ a }}' }])
   })
 
   it('keeps a chain as text', () => {
@@ -388,14 +388,23 @@ describe('parts', () => {
 
   it('has no empty text', () => {
     expect(Template.parts('{{ a }}{{ b }}')).toStrictEqual([
-      { code: 'a', raw: false },
-      { code: 'b', raw: false },
+      { code: 'a', raw: false, source: '{{ a }}' },
+      { code: 'b', raw: false, source: '{{ b }}' },
     ])
     expect(Template.parts('')).toStrictEqual([])
   })
 
+  it('gives each tag its source as written', () => {
+    expect(Template.parts('a {{b }} {{{  c}}}')).toStrictEqual([
+      'a ',
+      { code: 'b', raw: false, source: '{{b }}' },
+      ' ',
+      { code: 'c', raw: true, source: '{{{  c}}}' },
+    ])
+  })
+
   it('reads an opener inside an expression as its code', () => {
-    expect(Template.parts('{{ a {{ b }}')).toStrictEqual([{ code: 'a {{ b', raw: false }])
+    expect(Template.parts('{{ a {{ b }}')).toStrictEqual([{ code: 'a {{ b', raw: false, source: '{{ a {{ b }}' }])
   })
 })
 
